@@ -9,9 +9,10 @@ function preload () {
     game.load.atlas('tank', 'assets/tanks.png', 'assets/tanks.json');
     game.load.atlas('enemy', 'assets/enemy-tanks.png', 'assets/tanks.json');
     game.load.image('bullet', 'assets/bullet.png');
-    game.load.image('earth', 'assets/sky.png');
+    game.load.image('sky', 'assets/sky.png');
     game.load.spritesheet('kaboom', 'assets/explosion.png', 64, 64, 23);
     game.load.spritesheet('player', 'assets/dude.png', 32, 48);
+    game.load.spritesheet('weapons', 'assets/weapons.gif', 120, 60);
 
 }
 
@@ -27,12 +28,10 @@ let enemiesTotal = 0;
 let enemiesAlive = 0;
 let explosions;
 
-let currentSpeed = 0;
-let cursors;
-let altUpKey;
-let altLeftKey;
-let altRightKey;
-let jumpKey;
+let player;
+let facing = 'right'
+
+let weapon;
 
 let bullets;
 let nextFire = 0;
@@ -45,23 +44,28 @@ let FIRERATE_RIFLE = 300;
 let FIRERATE_SHOTGUN = 700;
 let FIRERATE_SNIPER = 1200;
 
-let player;
-let facing = 'right'
+let currentSpeed = 0;
+let cursors;
+let altUpKey;
+let altLeftKey;
+let altRightKey;
+let jumpKey;
 
 const ROTATE_90_DEG_IN_RAD = Math.PI/2;
 
 function create () {
 
-    //  Resize our game world to be a 2000 x 2000 square
+    //  Resize our game world to be a 1600 x 800 square
     game.world.setBounds(-800, -725, 1600, 800);
     game.physics.arcade.gravity.y = 400;
 
     //  Our tiled scrolling background
-    land = game.add.tileSprite(0, 0, 800, 600, 'earth');
+    land = game.add.tileSprite(0, 0, 800, 600, 'sky');
     land.fixedToCamera = true;
 
     // Player
     player = game.add.sprite(0, 0, 'player');
+    player.anchor.setTo(0.5, 0.5);
     game.physics.enable(player, Phaser.Physics.ARCADE);
 
     player.body.collideWorldBounds = true;
@@ -86,6 +90,9 @@ function create () {
     turret = game.add.sprite(0, 0, 'tank', 'turret');
     turret.anchor.setTo(0.3, 0.5);
 
+    weapon = game.add.sprite(0, 0, 'weapons', 1);
+    weapon.anchor.setTo(0.3, 0.5);
+
     //  The enemies bullet group
     enemyBullets = game.add.group();
     enemyBullets.enableBody = true;
@@ -100,7 +107,7 @@ function create () {
     //  Create some baddies to waste :)
     enemies = [];
 
-    enemiesTotal = 5;
+    enemiesTotal = 0;
     enemiesAlive = 5;
 
     for (var i = 0; i < enemiesTotal; i++)
@@ -148,7 +155,7 @@ function create () {
 }
 
 function update () {
-
+    game.physics.arcade.collide(player, [tank]);
     game.physics.arcade.overlap(enemyBullets, tank, bulletHitPlayer, null, this);
 
     enemiesAlive = 0;
@@ -158,28 +165,61 @@ function update () {
         if (enemies[i].alive)
         {
             enemiesAlive++;
+            game.physics.arcade.collide(player, enemies[i].tank);
             game.physics.arcade.collide(tank, enemies[i].tank);
-            game.physics.arcade.overlap(bullets, enemies[i].tank, bulletHitEnemy, null, this);
+            game.physics.arcade.overlap(bullets, enemies[i].tank, bulletHitEnemy, null, this); // Like collide without the physics applied
             enemies[i].update();
         }
     }
 
+    player.body.velocity.x = 0;
+
     if (cursors.left.isDown || altLeftKey.isDown)
     {
-        tank.angle -= 4;
+      player.body.velocity.x = -150;
+
+      if (facing != 'left')
+      {
+          player.animations.play('left');
+          facing = 'left';
+      }
+
+      // tank.angle -= 4;
     }
     else if (cursors.right.isDown || altRightKey.isDown)
     {
-        tank.angle += 4;
+      player.body.velocity.x = 150;
+
+      if (facing != 'right')
+      {
+          player.animations.play('right');
+          facing = 'right';
+      }
+
+      // tank.angle += 4;
+    }
+    else {
+      if (facing != 'idle') {
+        player.animations.stop();
+
+        if (facing == 'left') {
+            player.frame = 0;
+        }
+        else {
+            player.frame = 5;
+        }
+
+        facing = 'idle';
+      }
     }
 
-    if (cursors.up.isDown || altUpKey.isDown || jumpKey.isDown)
-    {
-        //  The speed we'll travel at
-        currentSpeed = 300;
+    if ((cursors.up.isDown || altUpKey.isDown || jumpKey.isDown) && player.body.onFloor()) {
+      player.body.velocity.y = -250;
+
+      //  The speed we'll travel at
+      // currentSpeed = 300;
     }
-    else
-    {
+    else {
         if (currentSpeed > 0)
         {
             currentSpeed -= 4;
@@ -199,8 +239,8 @@ function update () {
     shadow.y = tank.y;
     shadow.rotation = tank.rotation;
 
-    turret.x = tank.x;
-    turret.y = tank.y;
+    turret.x = player.x;
+    turret.y = player.y;
 
     turret.rotation = game.physics.arcade.angleToPointer(turret);
 
