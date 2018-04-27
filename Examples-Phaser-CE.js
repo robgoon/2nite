@@ -1,59 +1,6 @@
-import PIXI from 'expose-loader?PIXI!phaser-ce/build/custom/pixi.js';
-import p2 from 'expose-loader?p2!phaser-ce/build/custom/p2.js';
-import Phaser from 'expose-loader?Phaser!phaser-ce/build/custom/phaser-split.js';
+// Ship
 
-/*
-console.clear();
 
-var colors = window.colors;
-
-var game = new Phaser.Game({
-  // antialias:               true,
-  // backgroundColor:         0x000000,
-  // disableVisibilityChange: false,
-  // enableDebug:             true,
-  // height:                  600,
-  // renderer:                Phaser.AUTO,
-  // resolution:              1,
-  // scaleMode:               Phaser.ScaleManager.NO_SCALE,
-  // transparent:             false,
-  // width:                   800,
-  state: {
-
-    init: function() {
-
-    },
-
-    preload: function() {
-      // This is equivalent to <https://examples.phaser.io/assets/>.
-      this.load.baseURL = 'https://cdn.jsdelivr.net/gh/samme/phaser-examples-assets@v2.0.0/assets/';
-      this.load.crossOrigin = 'anonymous';
-      this.load.image('dude', 'sprites/phaser-dude.png');
-    },
-
-    create: function() {
-      var sprite = this.add.sprite(this.world.centerX, this.world.centerY, 'dude');
-      // this.physics.enable(sprite);
-    },
-
-    update: function() {
-
-    },
-
-    render: function() {
-      var debug = this.game.debug;
-      debug.phaser(10, 580);
-    },
-
-    shutdown: function() {
-
-    }
-
-  }
-});
- */
-
-/*
 var game = new Phaser.Game(800, 600, Phaser.CANVAS, 'phaser-example', { preload: preload, create: create, update: update, render: render });
 
 function preload() {
@@ -140,10 +87,12 @@ function render() {
     weapon.debug();
 
 }
- */
 
 
-const EnemyTank = function (index, game, player, bullets) {
+// Tanks
+
+
+EnemyTank = function (index, game, player, bullets) {
 
     var x = game.world.randomX;
     var y = game.world.randomY;
@@ -225,13 +174,12 @@ var game = new Phaser.Game(800, 600, Phaser.AUTO, 'phaser-example', { preload: p
 
 function preload () {
 
-    game.load.atlas('tank', 'assets/tanks.png', 'assets/tanks.json');
-    game.load.atlas('enemy', 'assets/enemy-tanks.png', 'assets/tanks.json');
-    game.load.image('logo', 'assets/logo.png');
-    game.load.image('bullet', 'assets/bullet.png');
-    game.load.image('earth', 'assets/sky.png');
-    game.load.spritesheet('kaboom', 'assets/explosion.png', 64, 64, 23);
-    game.load.spritesheet('player', 'assets/dude.png', 32, 48);
+    game.load.atlas('tank', 'assets/games/tanks/tanks.png', 'assets/games/tanks/tanks.json');
+    game.load.atlas('enemy', 'assets/games/tanks/enemy-tanks.png', 'assets/games/tanks/tanks.json');
+    game.load.image('logo', 'assets/games/tanks/logo.png');
+    game.load.image('bullet', 'assets/games/tanks/bullet.png');
+    game.load.image('earth', 'assets/games/tanks/scorched_earth.png');
+    game.load.spritesheet('kaboom', 'assets/games/tanks/explosion.png', 64, 64, 23);
 
 }
 
@@ -256,22 +204,14 @@ var bullets;
 var fireRate = 100;
 var nextFire = 0;
 
-let player;
-
-const ROTATE_90_DEG_IN_RAD = Math.PI/2;
-
 function create () {
 
     //  Resize our game world to be a 2000 x 2000 square
-    game.world.setBounds(-800, -725, 1600, 800);
+    game.world.setBounds(-1000, -1000, 2000, 2000);
 
     //  Our tiled scrolling background
     land = game.add.tileSprite(0, 0, 800, 600, 'earth');
     land.fixedToCamera = true;
-
-    // Player
-    player = game.add.sprite(0, 0, 'player');
-    game.physics.enable(player, Phaser.Physics.ARCADE);
 
     //  The base of our tank
     tank = game.add.sprite(0, 0, 'tank', 'tank1');
@@ -302,8 +242,8 @@ function create () {
     //  Create some baddies to waste :)
     enemies = [];
 
-    enemiesTotal = 5;
-    enemiesAlive = 5;
+    enemiesTotal = 20;
+    enemiesAlive = 20;
 
     for (var i = 0; i < enemiesTotal; i++)
     {
@@ -453,17 +393,146 @@ function fire () {
 
         bullet.reset(turret.x, turret.y);
 
-        bullet.scale.setMagnitude(2)
-
-        bullet.rotation = game.physics.arcade.moveToPointer(bullet, 400, game.input.activePointer, 0) + ROTATE_90_DEG_IN_RAD;
+        bullet.rotation = game.physics.arcade.moveToPointer(bullet, 1000, game.input.activePointer, 500);
     }
 
 }
 
 function render () {
 
-    game.debug.text('Active Bullets: ' + bullets.countLiving() + ' / ' + bullets.length, 32, 64);
+    // game.debug.text('Active Bullets: ' + bullets.countLiving() + ' / ' + bullets.length, 32, 32);
     game.debug.text('Enemies: ' + enemiesAlive + ' / ' + enemiesTotal, 32, 32);
-    game.debug.bodyInfo(tank, 32, 96);
-    game.debug.body(tank);
+
+}
+
+
+// Dude
+
+
+
+var game = new Phaser.Game(800, 600, Phaser.CANVAS, 'phaser-example', { preload: preload, create: create, update: update, render: render });
+
+function preload() {
+
+    game.load.tilemap('level1', 'assets/games/starstruck/level1.json', null, Phaser.Tilemap.TILED_JSON);
+    game.load.image('tiles-1', 'assets/games/starstruck/tiles-1.png');
+    game.load.spritesheet('dude', 'assets/games/starstruck/dude.png', 32, 48);
+    game.load.spritesheet('droid', 'assets/games/starstruck/droid.png', 32, 32);
+    game.load.image('starSmall', 'assets/games/starstruck/star.png');
+    game.load.image('starBig', 'assets/games/starstruck/star2.png');
+    game.load.image('background', 'assets/games/starstruck/background2.png');
+
+}
+
+var map;
+var tileset;
+var layer;
+var player;
+var facing = 'left';
+var jumpTimer = 0;
+var cursors;
+var jumpButton;
+var bg;
+
+function create() {
+
+    game.physics.startSystem(Phaser.Physics.ARCADE);
+
+    game.stage.backgroundColor = '#000000';
+
+    bg = game.add.tileSprite(0, 0, 800, 600, 'background');
+    bg.fixedToCamera = true;
+
+    map = game.add.tilemap('level1');
+
+    map.addTilesetImage('tiles-1');
+
+    map.setCollisionByExclusion([ 13, 14, 15, 16, 46, 47, 48, 49, 50, 51 ]);
+
+    layer = map.createLayer('Tile Layer 1');
+
+    //  Un-comment this on to see the collision tiles
+    // layer.debug = true;
+
+    layer.resizeWorld();
+
+    game.physics.arcade.gravity.y = 250;
+
+    player = game.add.sprite(32, 32, 'dude');
+    game.physics.enable(player, Phaser.Physics.ARCADE);
+
+    player.body.bounce.y = 0.2;
+    player.body.collideWorldBounds = true;
+    player.body.setSize(20, 32, 5, 16);
+
+    player.animations.add('left', [0, 1, 2, 3], 10, true);
+    player.animations.add('turn', [4], 20, true);
+    player.animations.add('right', [5, 6, 7, 8], 10, true);
+
+    game.camera.follow(player);
+
+    cursors = game.input.keyboard.createCursorKeys();
+    jumpButton = game.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR);
+
+}
+
+function update() {
+
+    game.physics.arcade.collide(player, layer);
+
+    player.body.velocity.x = 0;
+
+    if (cursors.left.isDown)
+    {
+        player.body.velocity.x = -150;
+
+        if (facing != 'left')
+        {
+            player.animations.play('left');
+            facing = 'left';
+        }
+    }
+    else if (cursors.right.isDown)
+    {
+        player.body.velocity.x = 150;
+
+        if (facing != 'right')
+        {
+            player.animations.play('right');
+            facing = 'right';
+        }
+    }
+    else
+    {
+        if (facing != 'idle')
+        {
+            player.animations.stop();
+
+            if (facing == 'left')
+            {
+                player.frame = 0;
+            }
+            else
+            {
+                player.frame = 5;
+            }
+
+            facing = 'idle';
+        }
+    }
+
+    if (jumpButton.isDown && player.body.onFloor() && game.time.now > jumpTimer)
+    {
+        player.body.velocity.y = -250;
+        jumpTimer = game.time.now + 750;
+    }
+
+}
+
+function render () {
+
+    // game.debug.text(game.time.physicsElapsed, 32, 32);
+    // game.debug.body(player);
+    // game.debug.bodyInfo(player, 16, 24);
+
 }
