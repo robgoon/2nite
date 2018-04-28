@@ -9,12 +9,14 @@ function preload () {
   game.load.atlas('enemy', 'assets/enemy-tanks.png', 'assets/tanks.json');
   game.load.image('bullet', 'assets/bullet.png');
   game.load.image('sky', 'assets/sky.png');
+  game.load.spritesheet('ground', 'assets/tiles-1.png', 100, 58.5, 1, 4);
   game.load.spritesheet('kaboom', 'assets/explosion.png', 64, 64, 23);
   game.load.spritesheet('player', 'assets/dude.png', 32, 48);
   game.load.spritesheet('weapons', 'assets/weapons.gif', 105, 67);
 }
 
-let land;
+let sky;
+let ground;
 
 let shadow;
 let tank;
@@ -54,16 +56,24 @@ const GRAVITY = 400;
 const ROTATE_90_DEG_IN_RAD = Math.PI/2;
 
 function create () {
-  // *** Resize our game world to be a 1600 x 800 square ***
-  game.world.setBounds(-800, -725, 1600, 800);
+  // *** Resize our game world to be a 1600 x 600 square ***
+  game.world.setBounds(-800, 0, 1600, 600);
   game.physics.arcade.gravity.y = GRAVITY;
 
-  // *** Our tiled scrolling background ***
-  land = game.add.tileSprite(0, 0, 800, 600, 'sky');
-  land.fixedToCamera = true;
+  // *** Tiled scrolling sky ***
+  sky = game.add.tileSprite(0, 0, 800, 600, 'sky');
+  sky.fixedToCamera = true;
+
+  // *** Tiled scrolling ground ***
+  ground = game.add.tileSprite(0, 541.5, 800, 58, 'ground', 0);
+  ground.fixedToCamera = true;
+  game.physics.enable(ground, Phaser.Physics.ARCADE);
+
+  ground.body.immovable = true;
+  ground.body.allowGravity = false;
 
   // *** Player ***
-  player = game.add.sprite(0, 0, 'player');
+  player = game.add.sprite(0, 450, 'player');
   player.anchor.setTo(0.5, 0.5);
   game.physics.enable(player, Phaser.Physics.ARCADE);
 
@@ -78,7 +88,7 @@ function create () {
 
 
   //  The base of our tank
-  tank = game.add.sprite(250, 0, 'tank', 'tank1');
+  tank = game.add.sprite(250, 450, 'tank', 'tank1');
   tank.anchor.setTo(0.5, 0.5);
   tank.animations.add('move', ['tank1', 'tank2', 'tank3', 'tank4', 'tank5', 'tank6'], 20, true);
 
@@ -181,7 +191,7 @@ function create () {
 }
 
 function update () {
-  game.physics.arcade.collide(player, [tank]);
+  game.physics.arcade.collide(player, [ground, tank]);
   game.physics.arcade.overlap(enemyBullets, tank, bulletHitPlayer, null, this);
 
   enemiesAlive = 0;
@@ -260,8 +270,8 @@ function update () {
     game.physics.arcade.velocityFromRotation(tank.rotation, currentSpeed, tank.body.velocity);
   }
 
-  land.tilePosition.x = -game.camera.x;
-  land.tilePosition.y = -game.camera.y;
+  sky.tilePosition.x = -game.camera.x;
+  ground.tilePosition.x = -game.camera.x;
 
   //  Position all the parts and align rotations
   shadow.x = tank.x;
@@ -314,7 +324,8 @@ function fire () {
 
 function render () {
   game.debug.bodyInfo(player, 32, 96);
-  // game.debug.body(player); // Hitbox/Collision model
+  game.debug.body(player); // Hitbox/Collision model
+  game.debug.body(ground); // Hitbox/Collision model
   weapon.debug()
 }
 
