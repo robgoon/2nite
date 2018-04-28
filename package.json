@@ -25,5 +25,10 @@
   },
   "dependencies": {
     "phaser-ce": "^2.10.3"
-  }
+  },
+  "eslintConfig": {
+    "rules": {
+        "max-statements": "off"
+    }
+}
 }
