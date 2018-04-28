@@ -5,15 +5,13 @@ import Phaser from 'expose-loader?Phaser!phaser-ce/build/custom/phaser-split.js'
 var game = new Phaser.Game(800, 600, Phaser.AUTO, '2nite', { preload: preload, create: create, update: update, render: render });
 
 function preload () {
-
-    game.load.atlas('tank', 'assets/tanks.png', 'assets/tanks.json');
-    game.load.atlas('enemy', 'assets/enemy-tanks.png', 'assets/tanks.json');
-    game.load.image('bullet', 'assets/bullet.png');
-    game.load.image('sky', 'assets/sky.png');
-    game.load.spritesheet('kaboom', 'assets/explosion.png', 64, 64, 23);
-    game.load.spritesheet('player', 'assets/dude.png', 32, 48);
-    game.load.spritesheet('weapons', 'assets/weapons.gif', 105, 67);
-
+  game.load.atlas('tank', 'assets/tanks.png', 'assets/tanks.json');
+  game.load.atlas('enemy', 'assets/enemy-tanks.png', 'assets/tanks.json');
+  game.load.image('bullet', 'assets/bullet.png');
+  game.load.image('sky', 'assets/sky.png');
+  game.load.spritesheet('kaboom', 'assets/explosion.png', 64, 64, 23);
+  game.load.spritesheet('player', 'assets/dude.png', 32, 48);
+  game.load.spritesheet('weapons', 'assets/weapons.gif', 105, 67);
 }
 
 let land;
@@ -56,280 +54,267 @@ const GRAVITY = 400;
 const ROTATE_90_DEG_IN_RAD = Math.PI/2;
 
 function create () {
+  // *** Resize our game world to be a 1600 x 800 square ***
+  game.world.setBounds(-800, -725, 1600, 800);
+  game.physics.arcade.gravity.y = GRAVITY;
 
-    // *** Resize our game world to be a 1600 x 800 square ***
-    game.world.setBounds(-800, -725, 1600, 800);
-    game.physics.arcade.gravity.y = GRAVITY;
+  // *** Our tiled scrolling background ***
+  land = game.add.tileSprite(0, 0, 800, 600, 'sky');
+  land.fixedToCamera = true;
 
-    // *** Our tiled scrolling background ***
-    land = game.add.tileSprite(0, 0, 800, 600, 'sky');
-    land.fixedToCamera = true;
+  // *** Player ***
+  player = game.add.sprite(0, 0, 'player');
+  player.anchor.setTo(0.5, 0.5);
+  game.physics.enable(player, Phaser.Physics.ARCADE);
 
-    // *** Player ***
-    player = game.add.sprite(0, 0, 'player');
-    player.anchor.setTo(0.5, 0.5);
-    game.physics.enable(player, Phaser.Physics.ARCADE);
+  player.body.collideWorldBounds = true;
+  player.body.setSize(28, 36, 2, 12); // Hitbox/Collision model
 
-    player.body.collideWorldBounds = true;
-    player.body.setSize(28, 36, 2, 12); // Hitbox/Collision model
+  player.scale.set(1.5);
 
-    player.scale.set(1.5);
+  player.animations.add('left', [0, 1, 2, 3], 10, true);
+  player.animations.add('turn', [4], 20, true);
+  player.animations.add('right', [5, 6, 7, 8], 10, true);
 
-    player.animations.add('left', [0, 1, 2, 3], 10, true);
-    player.animations.add('turn', [4], 20, true);
-    player.animations.add('right', [5, 6, 7, 8], 10, true);
 
-    //  The base of our tank
-    tank = game.add.sprite(250, 0, 'tank', 'tank1');
-    tank.anchor.setTo(0.5, 0.5);
-    tank.animations.add('move', ['tank1', 'tank2', 'tank3', 'tank4', 'tank5', 'tank6'], 20, true);
+  //  The base of our tank
+  tank = game.add.sprite(250, 0, 'tank', 'tank1');
+  tank.anchor.setTo(0.5, 0.5);
+  tank.animations.add('move', ['tank1', 'tank2', 'tank3', 'tank4', 'tank5', 'tank6'], 20, true);
 
-    //  This will force it to decelerate and limit its speed
-    game.physics.enable(tank, Phaser.Physics.ARCADE);
-    tank.body.drag.set(0.2);
-    tank.body.maxVelocity.setTo(400, 400);
-    tank.body.collideWorldBounds = true;
+  //  This will force it to decelerate and limit its speed
+  game.physics.enable(tank, Phaser.Physics.ARCADE);
+  tank.body.drag.set(0.2);
+  tank.body.maxVelocity.setTo(400, 400);
+  tank.body.collideWorldBounds = true;
 
-    //  Finally the turret that we place on-top of the tank body
-    turret = game.add.sprite(0, 0, 'tank', 'turret');
-    turret.anchor.setTo(0.3, 0.5);
+  //  Finally the turret that we place on-top of the tank body
+  turret = game.add.sprite(0, 0, 'tank', 'turret');
+  turret.anchor.setTo(0.3, 0.5);
 
-    // *** Default weapon ***
-    weaponSprite = game.add.sprite(0, 0, 'weapons', 0);
-    weaponSprite.anchor.setTo(0.3, 0.5);
-    weaponSprite.scale.setMagnitude(.8);
-    weaponSprite.x = player.x + 25;
 
-    // *** Bullets ***
+  // *** Default weapon ***
+  weaponSprite = game.add.sprite(0, 0, 'weapons', 0);
+  weaponSprite.anchor.setTo(0.3, 0.5);
+  weaponSprite.scale.set(.6);
+  weaponSprite.x = player.x + 25;
 
-    //  Creates 30 bullets, using the 'bullet' graphic
-    weapon = game.add.weapon(30, 'bullet');
-    weapon.bullets.forEach(bullet => {
-        bullet.scale.set(1.5)
-    }, this)
-    weapon.bulletGravity.y = -GRAVITY;
+  // *** Bullets ***
 
-    // Rotate bullets
-    weapon.bulletAngleOffset = 90;
+  //  Creates 30 bullets, using the 'bullet' graphic
+  weapon = game.add.weapon(30, 'bullet');
+  weapon.bullets.forEach(bullet => {
+    bullet.scale.set(1.5)
+  }, this)
+  weapon.bulletGravity.y = -GRAVITY;
 
-    //  The speed at which the bullet is fired
-    weapon.bulletSpeed = 400;
+  // Rotate bullets
+  weapon.bulletAngleOffset = 90;
 
-    //  Speed-up the rate of fire, allowing them to shoot 1 bullet every 60ms
-    weapon.fireRate = FIRERATE_RIFLE;
+  //  The speed at which the bullet is fired
+  weapon.bulletSpeed = 400;
 
-    //  Tell the Weapon to track the 'weaponSprite' Sprite
-    //  But the 'true' argument tells the weapon to track sprite rotation
-    weapon.trackSprite(weaponSprite, 0, 0, true);
+  //  Speed-up the rate of fire, allowing them to shoot 1 bullet every 60ms
+  weapon.fireRate = FIRERATE_RIFLE;
 
-    //  The enemies bullet group
-    enemyBullets = game.add.group();
-    enemyBullets.enableBody = true;
-    enemyBullets.physicsBodyType = Phaser.Physics.ARCADE;
-    enemyBullets.createMultiple(100, 'bullet');
+  //  Tell the Weapon to track the 'weaponSprite' Sprite
+  //  But the 'true' argument tells the weapon to track sprite rotation
+  weapon.trackSprite(weaponSprite, 25, -5, true);
 
-    enemyBullets.setAll('anchor.x', 0.5);
-    enemyBullets.setAll('anchor.y', 0.5);
-    enemyBullets.setAll('outOfBoundsKill', true);
-    enemyBullets.setAll('checkWorldBounds', true);
 
-    //  Create some baddies to waste :)
-    enemies = [];
+  //  The enemies bullet group
+  enemyBullets = game.add.group();
+  enemyBullets.enableBody = true;
+  enemyBullets.physicsBodyType = Phaser.Physics.ARCADE;
+  enemyBullets.createMultiple(100, 'bullet');
 
-    enemiesTotal = 0;
-    enemiesAlive = 5;
+  enemyBullets.setAll('anchor.x', 0.5);
+  enemyBullets.setAll('anchor.y', 0.5);
+  enemyBullets.setAll('outOfBoundsKill', true);
+  enemyBullets.setAll('checkWorldBounds', true);
 
-    for (var i = 0; i < enemiesTotal; i++)
-    {
-        enemies.push(new EnemyTank(i, game, tank, enemyBullets));
-    }
+  //  Create some baddies to waste :)
+  enemies = [];
 
-    //  A shadow below our tank
-    shadow = game.add.sprite(0, 0, 'tank', 'shadow');
-    shadow.anchor.setTo(0.5, 0.5);
+  enemiesTotal = 0;
+  enemiesAlive = 5;
 
-    //  Our bullet group
-    bullets = game.add.group();
-    bullets.enableBody = true;
-    bullets.physicsBodyType = Phaser.Physics.ARCADE;
-    bullets.createMultiple(30, 'bullet', 0, false);
-    bullets.setAll('anchor.x', 0.5);
-    bullets.setAll('anchor.y', 0.5);
-    bullets.setAll('outOfBoundsKill', true);
-    bullets.setAll('checkWorldBounds', true);
+  for (var i = 0; i < enemiesTotal; i++) {
+    enemies.push(new EnemyTank(i, game, tank, enemyBullets));
+  }
 
-    //  Explosion pool
-    explosions = game.add.group();
+  //  A shadow below our tank
+  shadow = game.add.sprite(0, 0, 'tank', 'shadow');
+  shadow.anchor.setTo(0.5, 0.5);
 
-    for (var i = 0; i < 10; i++)
-    {
-        var explosionAnimation = explosions.create(0, 0, 'kaboom', [0], false);
-        explosionAnimation.anchor.setTo(0.5, 0.5);
-        explosionAnimation.animations.add('kaboom');
-    }
+  //  Our bullet group
+  bullets = game.add.group();
+  bullets.enableBody = true;
+  bullets.physicsBodyType = Phaser.Physics.ARCADE;
+  bullets.createMultiple(30, 'bullet', 0, false);
+  bullets.setAll('anchor.x', 0.5);
+  bullets.setAll('anchor.y', 0.5);
+  bullets.setAll('outOfBoundsKill', true);
+  bullets.setAll('checkWorldBounds', true);
 
-    tank.bringToTop();
-    turret.bringToTop();
+  //  Explosion pool
+  explosions = game.add.group();
 
-    game.camera.follow(player);
-    game.camera.deadzone = new Phaser.Rectangle(150, 150, 500, 300);
-    game.camera.focusOnXY(0, 0);
+  for (var i = 0; i < 10; i++) {
+    var explosionAnimation = explosions.create(0, 0, 'kaboom', [0], false);
+    explosionAnimation.anchor.setTo(0.5, 0.5);
+    explosionAnimation.animations.add('kaboom');
+  }
 
-    cursors = game.input.keyboard.createCursorKeys();
-    altUpKey = game.input.keyboard.addKey(Phaser.Keyboard.W);
-    altLeftKey = game.input.keyboard.addKey(Phaser.Keyboard.A);
-    altRightKey = game.input.keyboard.addKey(Phaser.Keyboard.D);
-    jumpKey = game.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR);
+  tank.bringToTop();
+  turret.bringToTop();
 
+  game.camera.follow(player);
+  game.camera.deadzone = new Phaser.Rectangle(150, 150, 500, 300);
+  game.camera.focusOnXY(0, 0);
+
+  cursors = game.input.keyboard.createCursorKeys();
+  altUpKey = game.input.keyboard.addKey(Phaser.Keyboard.W);
+  altLeftKey = game.input.keyboard.addKey(Phaser.Keyboard.A);
+  altRightKey = game.input.keyboard.addKey(Phaser.Keyboard.D);
+  jumpKey = game.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR);
 }
 
 function update () {
-    game.physics.arcade.collide(player, [tank]);
-    game.physics.arcade.overlap(enemyBullets, tank, bulletHitPlayer, null, this);
+  game.physics.arcade.collide(player, [tank]);
+  game.physics.arcade.overlap(enemyBullets, tank, bulletHitPlayer, null, this);
 
-    enemiesAlive = 0;
+  enemiesAlive = 0;
 
-    for (var i = 0; i < enemies.length; i++)
-    {
-        if (enemies[i].alive)
-        {
-            enemiesAlive++;
-            game.physics.arcade.collide(player, enemies[i].tank);
-            game.physics.arcade.collide(tank, enemies[i].tank);
-            game.physics.arcade.overlap(bullets, enemies[i].tank, bulletHitEnemy, null, this); // Like collide without the physics applied
-            enemies[i].update();
-        }
+  for (var i = 0; i < enemies.length; i++) {
+    if (enemies[i].alive) {
+      enemiesAlive++;
+      game.physics.arcade.collide(player, enemies[i].tank);
+      game.physics.arcade.collide(tank, enemies[i].tank);
+      game.physics.arcade.overlap(bullets, enemies[i].tank, bulletHitEnemy, null, this); // Like collide without the physics applied
+      enemies[i].update();
+    }
+  }
+
+  player.body.velocity.x = 0;
+
+  if (cursors.left.isDown || altLeftKey.isDown)
+  {
+    player.body.velocity.x = -150;
+
+    if (facing != 'left') {
+      player.animations.play('left');
+      facing = 'left';
     }
 
-    player.body.velocity.x = 0;
+    if (weaponSprite.scale.y > 0) {
+      weaponSprite.scale.y *= -1;
+      weapon.trackSprite(weaponSprite, 25, 5, true);
+    }
 
-    if (cursors.left.isDown || altLeftKey.isDown)
-    {
-      player.body.velocity.x = -150;
+    weaponSprite.x = player.x - 10;
+  }
+  else if (cursors.right.isDown || altRightKey.isDown) {
+    player.body.velocity.x = 150;
 
-      if (facing != 'left')
-      {
-          player.animations.play('left');
-          facing = 'left';
+    if (facing != 'right') {
+      player.animations.play('right');
+      facing = 'right';
+    }
 
+    if (weaponSprite.scale.y < 0) {
+      weaponSprite.scale.y *= -1;
+      weapon.trackSprite(weaponSprite, 25, -5, true);
+    }
+
+    weaponSprite.x = player.x + 10;
+  }
+  else {
+    if (facing != 'idle') {
+      player.animations.stop();
+
+      if (facing == 'left') {
+        player.frame = 0;
+      }
+      else {
+        player.frame = 5;
       }
 
-      weaponSprite.x = player.x - 10;
-
+      facing = 'idle';
     }
-    else if (cursors.right.isDown || altRightKey.isDown)
-    {
-      player.body.velocity.x = 150;
+  }
 
-      if (facing != 'right')
-      {
-          player.animations.play('right');
-          facing = 'right';
-      }
+  if ((cursors.up.isDown || altUpKey.isDown || jumpKey.isDown) && player.body.onFloor()) {
+    player.body.velocity.y = -250;
 
-      weaponSprite.x = player.x + 10;
+    //  The speed we'll travel at
+    // currentSpeed = 300;
+  }
+  else {
+    if (currentSpeed > 0) {
+      currentSpeed -= 4;
     }
-    else {
-      if (facing != 'idle') {
-        player.animations.stop();
+  }
 
-        if (facing == 'left') {
-            player.frame = 0;
-        }
-        else {
-            player.frame = 5;
-        }
+  if (currentSpeed > 0) {
+    game.physics.arcade.velocityFromRotation(tank.rotation, currentSpeed, tank.body.velocity);
+  }
 
-        facing = 'idle';
-      }
-    }
+  land.tilePosition.x = -game.camera.x;
+  land.tilePosition.y = -game.camera.y;
 
-    if ((cursors.up.isDown || altUpKey.isDown || jumpKey.isDown) && player.body.onFloor()) {
-      player.body.velocity.y = -250;
+  //  Position all the parts and align rotations
+  shadow.x = tank.x;
+  shadow.y = tank.y;
+  shadow.rotation = tank.rotation;
 
-      //  The speed we'll travel at
-      // currentSpeed = 300;
-    }
-    else {
-        if (currentSpeed > 0)
-        {
-            currentSpeed -= 4;
-        }
-    }
+  turret.x = tank.x;
+  turret.y = tank.y;
 
-    if (currentSpeed > 0)
-    {
-        game.physics.arcade.velocityFromRotation(tank.rotation, currentSpeed, tank.body.velocity);
-    }
+  turret.rotation = game.physics.arcade.angleToPointer(turret);
 
-    land.tilePosition.x = -game.camera.x;
-    land.tilePosition.y = -game.camera.y;
+  weaponSprite.y = player.y + 20;
+  weaponSprite.rotation = game.physics.arcade.angleToPointer(weaponSprite);
 
-    //  Position all the parts and align rotations
-    shadow.x = tank.x;
-    shadow.y = tank.y;
-    shadow.rotation = tank.rotation;
-
-    turret.x = tank.x;
-    turret.y = tank.y;
-
-    turret.rotation = game.physics.arcade.angleToPointer(turret);
-
-    weaponSprite.y = player.y + 20;
-    weaponSprite.rotation = game.physics.arcade.angleToPointer(weaponSprite);
-
-
-
-    if (game.input.activePointer.isDown)
-    {
-        //  Boom!
-        weapon.fire();
-        fire();
-    }
-
+  if (game.input.activePointer.isDown) {
+    //  Boom!
+    weapon.fire();
+    // fire();
+  }
 }
 
 function bulletHitPlayer (tank, bullet) {
-
-    bullet.kill();
-
+  bullet.kill();
 }
 
 function bulletHitEnemy (tank, bullet) {
+  bullet.kill();
 
-    bullet.kill();
+  var destroyed = enemies[tank.name].damage();
 
-    var destroyed = enemies[tank.name].damage();
-
-    if (destroyed)
-    {
-        var explosionAnimation = explosions.getFirstExists(false);
-        explosionAnimation.reset(tank.x, tank.y);
-        explosionAnimation.play('kaboom', 30, false, true);
-    }
-
+  if (destroyed) {
+    var explosionAnimation = explosions.getFirstExists(false);
+    explosionAnimation.reset(tank.x, tank.y);
+    explosionAnimation.play('kaboom', 30, false, true);
+  }
 }
 
 function fire () {
+  if (game.time.now > nextFire && bullets.countDead() > 0) {
+    nextFire = game.time.now + FIRERATE_RIFLE;
 
-    if (game.time.now > nextFire && bullets.countDead() > 0)
-    {
-        nextFire = game.time.now + FIRERATE_RIFLE;
+    var bullet = bullets.getFirstExists(false);
 
-        var bullet = bullets.getFirstExists(false);
-
-        bullet.reset(turret.x, turret.y);
-        bullet.scale.setMagnitude(2);
-        bullet.body.allowGravity = false;
-        bullet.rotation = game.physics.arcade.moveToPointer(bullet, 400, game.input.activePointer, 0) + ROTATE_90_DEG_IN_RAD;
-    }
-
+    bullet.reset(turret.x, turret.y);
+    bullet.scale.setMagnitude(2);
+    bullet.body.allowGravity = false;
+    bullet.rotation = game.physics.arcade.moveToPointer(bullet, 400, game.input.activePointer, 0) + ROTATE_90_DEG_IN_RAD;
+  }
 }
 
 function render () {
-
-    game.debug.bodyInfo(player, 32, 96);
-    game.debug.body(player); // Hitbox/Collision model
-    weapon.debug()
+  game.debug.bodyInfo(player, 32, 96);
+  // game.debug.body(player); // Hitbox/Collision model
+  weapon.debug()
 }
 
