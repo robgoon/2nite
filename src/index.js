@@ -57,22 +57,23 @@ const ROTATE_90_DEG_IN_RAD = Math.PI/2;
 
 function create () {
 
-    /* Resize our game world to be a 1600 x 800 square */
+    // *** Resize our game world to be a 1600 x 800 square ***
     game.world.setBounds(-800, -725, 1600, 800);
     game.physics.arcade.gravity.y = GRAVITY;
 
-    /* Our tiled scrolling background */
+    // *** Our tiled scrolling background ***
     land = game.add.tileSprite(0, 0, 800, 600, 'sky');
     land.fixedToCamera = true;
 
-    /* Player */
+    // *** Player ***
     player = game.add.sprite(0, 0, 'player');
     player.anchor.setTo(0.5, 0.5);
     game.physics.enable(player, Phaser.Physics.ARCADE);
 
     player.body.collideWorldBounds = true;
-    player.scale.setMagnitude(2);
-    player.body.setSize(26, 35, 3, 13); // Hitbox/Collision model
+    player.body.setSize(28, 36, 2, 12); // Hitbox/Collision model
+
+    player.scale.set(1.5);
 
     player.animations.add('left', [0, 1, 2, 3], 10, true);
     player.animations.add('turn', [4], 20, true);
@@ -93,22 +94,20 @@ function create () {
     turret = game.add.sprite(0, 0, 'tank', 'turret');
     turret.anchor.setTo(0.3, 0.5);
 
-    /* Default weapon */
+    // *** Default weapon ***
     weaponSprite = game.add.sprite(0, 0, 'weapons', 0);
-    weaponSprite.anchor.setTo(0.3, 0.1);
+    weaponSprite.anchor.setTo(0.3, 0.5);
     weaponSprite.scale.setMagnitude(.8);
-    game.physics.enable(weaponSprite, Phaser.Physics.ARCADE);
-    weaponSprite.body.collideWorldBounds = true;
+    weaponSprite.x = player.x + 25;
 
-    /* Bullets */
+    // *** Bullets ***
 
     //  Creates 30 bullets, using the 'bullet' graphic
     weapon = game.add.weapon(30, 'bullet');
-    weapon.bullets.scale.setMagnitude(2);
+    weapon.bullets.forEach(bullet => {
+        bullet.scale.set(1.5)
+    }, this)
     weapon.bulletGravity.y = -GRAVITY;
-
-    //  The bullet will be automatically killed when it leaves the world bounds
-    // weapon.bulletKillType = Phaser.Weapon.KILL_WEAPON_BOUNDS;
 
     // Rotate bullets
     weapon.bulletAngleOffset = 90;
@@ -212,9 +211,11 @@ function update () {
       {
           player.animations.play('left');
           facing = 'left';
+
       }
 
-      // tank.angle -= 4;
+      weaponSprite.x = player.x - 10;
+
     }
     else if (cursors.right.isDown || altRightKey.isDown)
     {
@@ -226,7 +227,7 @@ function update () {
           facing = 'right';
       }
 
-      // tank.angle += 4;
+      weaponSprite.x = player.x + 10;
     }
     else {
       if (facing != 'idle') {
@@ -274,9 +275,7 @@ function update () {
 
     turret.rotation = game.physics.arcade.angleToPointer(turret);
 
-    weaponSprite.x = player.x;
-    weaponSprite.y = player.y;
-
+    weaponSprite.y = player.y + 20;
     weaponSprite.rotation = game.physics.arcade.angleToPointer(weaponSprite);
 
 
@@ -329,7 +328,8 @@ function fire () {
 
 function render () {
 
-    game.debug.bodyInfo(weaponSprite, 32, 96);
-    // game.debug.body(player); // Hitbox/Collision model
-    // weapon.debug()
+    game.debug.bodyInfo(player, 32, 96);
+    game.debug.body(player); // Hitbox/Collision model
+    weapon.debug()
 }
+
