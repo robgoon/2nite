@@ -19,27 +19,18 @@ var game = new Phaser.Game(
 );
 
 function preload () {
-  game.load.atlas('tank', 'assets/tanks.png', 'assets/tanks.json');
-  game.load.atlas('enemy', 'assets/enemy-tanks.png', 'assets/tanks.json');
   game.load.image('bullet', 'assets/bullet.png');
   game.load.image('sky', 'assets/sky.png');
   game.load.image('structure', 'assets/platform.png');
   game.load.spritesheet('ground', 'assets/tiles-1.png', 100, 58.5, 1, 4);
-  game.load.spritesheet('kaboom', 'assets/explosion.png', 64, 64, 23);
   game.load.spritesheet('player', 'assets/dude.png', 32, 48);
   game.load.spritesheet('weapons', 'assets/weapons.gif', 105, 67);
+  game.load.spritesheet('kaboom', 'assets/explosion.png', 64, 64, 23);
 }
 
 let sky;
 let ground;
 
-let tank;
-let turret;
-
-let enemies;
-let enemyBullets;
-let enemiesTotal = 0;
-let enemiesAlive = 0;
 let explosions;
 
 let player;
@@ -63,10 +54,10 @@ const FIRERATE_SNIPER = 1200;
 
 let structures;
 let newStructure;
+let structurePlacement;
 
 let structuresRemaining = 5;
 
-let currentSpeed = 0;
 let cursors;
 let altUpKey;
 let altLeftKey;
@@ -78,7 +69,6 @@ let rampKey;
 let platformKey;
 
 const GRAVITY = 400;
-const ROTATE_90_DEG_IN_RAD = Math.PI/2;
 
 function create () {
   // *** Resize game world to be a 1600 x 600 square ***
@@ -111,23 +101,6 @@ function create () {
   player.animations.add('turn', [4], 20, true);
   player.animations.add('right', [5, 6, 7, 8], 10, true);
 
-
-  //  The base of our tank
-  tank = game.add.sprite(250, 450, 'tank', 'tank1');
-  tank.anchor.setTo(0.5, 0.5);
-  tank.animations.add('move', ['tank1', 'tank2', 'tank3', 'tank4', 'tank5', 'tank6'], 20, true);
-
-  //  This will force it to decelerate and limit its speed
-  game.physics.enable(tank, Phaser.Physics.ARCADE);
-  tank.body.drag.set(0.2);
-  tank.body.maxVelocity.setTo(400, 400);
-  tank.body.collideWorldBounds = true;
-
-  //  Finally the turret that we place on-top of the tank body
-  turret = game.add.sprite(0, 0, 'tank', 'turret');
-  turret.anchor.setTo(0.3, 0.5);
-
-
   // *** Default weapon ***
   weaponSprite = game.add.sprite(0, 0, 'weapons', 0);
   weaponSprite.anchor.setTo(0.3, 0.5);
@@ -158,36 +131,6 @@ function create () {
   weapon.trackSprite(weaponSprite, 25, -5, true);
 
 
-  //  The enemies bullet group
-  enemyBullets = game.add.group();
-  enemyBullets.enableBody = true;
-  enemyBullets.physicsBodyType = Phaser.Physics.ARCADE;
-  enemyBullets.createMultiple(100, 'bullet');
-
-  enemyBullets.setAll('anchor.x', 0.5);
-  enemyBullets.setAll('anchor.y', 0.5);
-  enemyBullets.setAll('outOfBoundsKill', true);
-  enemyBullets.setAll('checkWorldBounds', true);
-
-  //  Create some baddies to waste :)
-  enemies = [];
-
-  enemiesTotal = 0;
-  enemiesAlive = 5;
-
-  for (var i = 0; i < enemiesTotal; i++) {
-    enemies.push(new EnemyTank(i, game, tank, enemyBullets));
-  }
-
-  //  Our bullet group
-  bullets = game.add.group();
-  bullets.enableBody = true;
-  bullets.physicsBodyType = Phaser.Physics.ARCADE;
-  bullets.createMultiple(30, 'bullet', 0, false);
-  bullets.setAll('anchor.x', 0.5);
-  bullets.setAll('anchor.y', 0.5);
-  bullets.setAll('outOfBoundsKill', true);
-  bullets.setAll('checkWorldBounds', true);
 
   //  Explosion pool
   explosions = game.add.group();
@@ -197,6 +140,8 @@ function create () {
     explosionAnimation.anchor.setTo(0.5, 0.5);
     explosionAnimation.animations.add('kaboom');
   }
+
+
 
   // *** Structures ***
   structures = game.add.group();
@@ -224,26 +169,13 @@ function create () {
 }
 
 function update () {
-  game.physics.arcade.collide(player, [ground, structures, tank]);
-  game.physics.arcade.overlap(enemyBullets, tank, bulletHitPlayer, null, this);
-
-  enemiesAlive = 0;
-
-  for (var i = 0; i < enemies.length; i++) {
-    if (enemies[i].alive) {
-      enemiesAlive++;
-      game.physics.arcade.collide(player, enemies[i].tank);
-      game.physics.arcade.collide(tank, enemies[i].tank);
-      game.physics.arcade.overlap(bullets, enemies[i].tank, bulletHitEnemy, null, this); // Like collide without the physics applied
-      enemies[i].update();
-    }
-  }
+  game.physics.arcade.collide(player, [ground, structures]);
+  // game.physics.arcade.overlap(bullets, enemies[i].tank, bulletHitEnemy, null, this); // Like collide without the physics applied
 
   // Stops player when no movement keys are pressed
   player.body.velocity.x = 0;
 
-  if (cursors.left.isDown || altLeftKey.isDown)
-  {
+  if (cursors.left.isDown || altLeftKey.isDown) {
     player.body.velocity.x = -150;
 
     if (facing != 'left') {
@@ -296,15 +228,25 @@ function update () {
     player.body.velocity.y = -250;
   }
 
-  if (wallKey.justPressed() && structuresRemaining > 0) {
+  if (wallKey.isDown && structuresRemaining > 0) {
+    createWallPlacement();
+  }
+  else if (rampKey.isDown && structuresRemaining > 0) {
+    createRampPlacement();
+  }
+  else if (platformKey.isDown && structuresRemaining > 0) {
+    createPlatformPlacement();
+  }
+  else if (wallKey.justReleased() && structuresRemaining > 0) {
+    structurePlacement.destroy();
     createWall();
   }
-
-  if (rampKey.justPressed() && structuresRemaining > 0) {
+  else if (rampKey.justReleased() && structuresRemaining > 0) {
+    structurePlacement.destroy();
     createRamp();
   }
-
-  if (platformKey.justPressed() && structuresRemaining > 0) {
+  else if (platformKey.justReleased() && structuresRemaining > 0) {
+    structurePlacement.destroy();
     createPlatform();
   }
 
@@ -312,99 +254,140 @@ function update () {
   sky.tilePosition.x = -game.camera.x;
   ground.tilePosition.x = -game.camera.x;
 
-  turret.x = tank.x;
-  turret.y = tank.y;
-
-  turret.rotation = game.physics.arcade.angleToPointer(turret);
-
   // Weapon positioning
   weaponSprite.y = player.y + 20;
   weaponSprite.rotation = game.physics.arcade.angleToPointer(weaponSprite);
 
   if (game.input.activePointer.isDown) {
-    //  Boom!
     weapon.fire();
-    // fire();
   }
 }
 
-function bulletHitPlayer (tank, bullet) {
-  bullet.kill();
-}
-
-function bulletHitEnemy (tank, bullet) {
-  bullet.kill();
-
-  var destroyed = enemies[tank.name].damage();
-
-  if (destroyed) {
-    var explosionAnimation = explosions.getFirstExists(false);
-    explosionAnimation.reset(tank.x, tank.y);
-    explosionAnimation.play('kaboom', 30, false, true);
-  }
-}
-
-function fire () {
-  if (game.time.now > nextFire && bullets.countDead() > 0) {
-    nextFire = game.time.now + FIRERATE_RIFLE;
-
-    var bullet = bullets.getFirstExists(false);
-
-    bullet.reset(turret.x, turret.y);
-    bullet.scale.setMagnitude(2);
-    bullet.body.allowGravity = false;
-    bullet.rotation = game.physics.arcade.moveToPointer(bullet, 400, game.input.activePointer, 0) + ROTATE_90_DEG_IN_RAD;
-  }
-}
-
-function applyCommonStructureProps (structure) {
+function applyCommonStructurePlacementProps (structure, type) {
   if (facing === 'left' || player.frame === FRAME_PLAYER_LEFT) {
-    structures.set(structure, 'scale.x', -.5);
+    structure.scale.x = -.25;
   }
   else {
-    structures.set(structure, 'scale.x', .5);
+    if(type === 'wall') {
+      structure.scale.x = -.25;
+    }
+    else {
+      structure.scale.x = .25;
+    }
   }
 
-  structures.set(structure, 'scale.y', .5);
+  structure.scale.y = .3;
+  structure.tint = 0x000000;
+}
+
+function applyCommonStructureProps (structure, type) {
+  if (facing === 'left' || player.frame === FRAME_PLAYER_LEFT) {
+    structures.set(structure, 'scale.x', -.25);
+  }
+  else {
+    if(type === 'wall') {
+      structures.set(structure, 'scale.x', -.25);
+    }
+    else {
+      structures.set(structure, 'scale.x', .25);
+    }
+  }
+
+  structures.set(structure, 'scale.y', .3);
   structures.set(structure, 'body.immovable', true);
   structures.set(structure, 'body.allowGravity', false);
 }
 
-function createWall () {
-  if (facing === 'left' || player.frame === FRAME_PLAYER_LEFT) {
-    newStructure =  structures.create(player.x - 150, player.y, 'structure');
-  }
-  else {
-    newStructure =  structures.create(player.x + 150, player.y, 'structure');
+// Need because can't rotate Arcade bodies
+function swapDimensions (sprite) {
+  const tempH = sprite.height;
+
+  sprite.height = sprite.width;
+  sprite.width = tempH;
+}
+
+function createWallPlacement () {
+  if (structurePlacement) {
+    structurePlacement.destroy();
   }
 
-  applyCommonStructureProps(newStructure);
+  if (facing === 'left' || player.frame === FRAME_PLAYER_LEFT) {
+    structurePlacement =  game.add.sprite(player.x - 150, player.y + 36, 'structure');
+  }
+  else {
+    structurePlacement =  game.add.sprite(player.x + 150, player.y + 36, 'structure');
+  }
+
+  applyCommonStructurePlacementProps(structurePlacement, 'wall');
+  swapDimensions(structurePlacement);
+}
+
+function createRampPlacement () {
+  if (structurePlacement) {
+    structurePlacement.destroy();
+  }
+
+  if (facing === 'left' || player.frame === FRAME_PLAYER_LEFT) {
+    structurePlacement =  game.add.sprite(player.x - 50, player.y, 'structure');
+  }
+  else {
+    structurePlacement =  game.add.sprite(player.x + 60, player.y, 'structure');
+  }
+
+  applyCommonStructurePlacementProps(structurePlacement, 'ramp');
+}
+
+function createPlatformPlacement () {
+  if (structurePlacement) {
+    structurePlacement.destroy();
+  }
+
+  if (facing === 'left' || player.frame === FRAME_PLAYER_LEFT) {
+    structurePlacement =  game.add.sprite(player.x - 20, player.y + 36, 'structure');
+  }
+  else {
+    structurePlacement =  game.add.sprite(player.x + 20, player.y + 36, 'structure');
+  }
+
+  applyCommonStructurePlacementProps(structurePlacement, 'platform');
+}
+
+function createWall () {
+  if (facing === 'left' || player.frame === FRAME_PLAYER_LEFT) {
+    newStructure =  structures.create(player.x - 150, player.y + 36, 'structure');
+  }
+  else {
+    newStructure =  structures.create(player.x + 150, player.y + 36, 'structure');
+  }
+
+  applyCommonStructureProps(newStructure, 'wall');
+  swapDimensions(newStructure);
 
   structuresRemaining--;
 }
 
 function createRamp () {
   if (facing === 'left' || player.frame === FRAME_PLAYER_LEFT) {
-    newStructure =  structures.create(player.x - 150, player.y, 'structure');
+    newStructure =  structures.create(player.x - 50, player.y, 'structure');
   }
   else {
-    newStructure =  structures.create(player.x + 150, player.y, 'structure');
+    newStructure =  structures.create(player.x + 60, player.y, 'structure');
   }
 
-  applyCommonStructureProps(newStructure);
+  applyCommonStructureProps(newStructure, 'ramp');
 
   structuresRemaining--;
 }
 
 function createPlatform () {
   if (facing === 'left' || player.frame === FRAME_PLAYER_LEFT) {
-    newStructure =  structures.create(player.x - 150, player.y, 'structure');
+    newStructure =  structures.create(player.x - 20, player.y + 36, 'structure');
   }
   else {
-    newStructure =  structures.create(player.x + 150, player.y, 'structure');
+    newStructure =  structures.create(player.x + 20, player.y + 36, 'structure');
   }
 
-  applyCommonStructureProps(newStructure);
+  applyCommonStructureProps(newStructure, 'platform');
 
   structuresRemaining--;
 }
@@ -421,11 +404,10 @@ function toggleFullscreen () {
 function render () {
   game.debug.bodyInfo(player, 32, 96);
   game.debug.cameraInfo(game.camera, 32, 200);
-  // game.debug.body(structures); // Hitbox/Collision model
-  // game.debug.body(ground); // Hitbox/Collision model
+  // game.debug.body(player); // Hitbox/Collision model
+  // structures.forEachAlive(member => { // Hitbox/Collision model
+  //   game.debug.body(member);
+  // }, this);
   weapon.debug();
-  structures.forEachAlive(member => {
-    game.debug.body(member);
-  }, this);
 }
 

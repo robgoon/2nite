@@ -1,19 +1,3 @@
-## Add simple building
-- wall
-- ramp
-- platform
-
-
----
-
-
-## Create simple material/structure pool
-- 5 structures limit
-
-
----
-
-
 ## Require weapon reload
 - keep inflight bullets alive
 
@@ -83,3 +67,22 @@
 - increment by 1
 - gain wood on kill
 - brick/metal drops on ground only player picks up
+
+
+---
+
+
+## Update to better ramp
+- create staircase logic/wall + plat OR update to P2 physics
+
+
+---
+
+
+## Convert to P2JS physics
+
+
+---
+
+
+## Add fall damage
