@@ -300,6 +300,14 @@ function update () {
     createWall();
   }
 
+  if (rampKey.justPressed() && structuresRemaining > 0) {
+    createRamp();
+  }
+
+  if (platformKey.justPressed() && structuresRemaining > 0) {
+    createPlatform();
+  }
+
   // Environment moves with camera
   sky.tilePosition.x = -game.camera.x;
   ground.tilePosition.x = -game.camera.x;
@@ -377,30 +385,28 @@ function createWall () {
 
 function createRamp () {
   if (facing === 'left' || player.frame === FRAME_PLAYER_LEFT) {
-    newStructure =  structures.create(player.x - 25, player.y, 'structure');
+    newStructure =  structures.create(player.x - 150, player.y, 'structure');
   }
   else {
-    newStructure =  structures.create(player.x + 25, player.y, 'structure');
+    newStructure =  structures.create(player.x + 150, player.y, 'structure');
   }
 
-  structures.set(newStructure, 'scale.x', .5);
-  structures.set(newStructure, 'scale.y', .5);
-  structures.set(newStructure, 'body.immovable', true);
-  structures.set(newStructure, 'body.allowGravity', false);
+  applyCommonStructureProps(newStructure);
+
+  structuresRemaining--;
 }
 
 function createPlatform () {
   if (facing === 'left' || player.frame === FRAME_PLAYER_LEFT) {
-    newStructure =  structures.create(player.x - 25, player.y, 'structure');
+    newStructure =  structures.create(player.x - 150, player.y, 'structure');
   }
   else {
-    newStructure =  structures.create(player.x + 25, player.y, 'structure');
+    newStructure =  structures.create(player.x + 150, player.y, 'structure');
   }
 
-  structures.set(newStructure, 'scale.x', .5);
-  structures.set(newStructure, 'scale.y', .5);
-  structures.set(newStructure, 'body.immovable', true);
-  structures.set(newStructure, 'body.allowGravity', false);
+  applyCommonStructureProps(newStructure);
+
+  structuresRemaining--;
 }
 
 function toggleFullscreen () {
