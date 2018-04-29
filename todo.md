@@ -1,10 +1,3 @@
-## Add ground
-- get image
-- extend full width
-
-
----
-
 ## Add building
 - get images
 - wall
@@ -47,3 +40,12 @@
 - player HP
 - structure dmg
 - ammo
+
+
+---
+
+
+## Add pickaxe
+- swings
+- proc on hit
+- different damage to structure vs enemies

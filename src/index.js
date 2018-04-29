@@ -23,6 +23,7 @@ function preload () {
   game.load.atlas('enemy', 'assets/enemy-tanks.png', 'assets/tanks.json');
   game.load.image('bullet', 'assets/bullet.png');
   game.load.image('sky', 'assets/sky.png');
+  game.load.image('structure', 'assets/platform.png');
   game.load.spritesheet('ground', 'assets/tiles-1.png', 100, 58.5, 1, 4);
   game.load.spritesheet('kaboom', 'assets/explosion.png', 64, 64, 23);
   game.load.spritesheet('player', 'assets/dude.png', 32, 48);
@@ -58,12 +59,19 @@ let FIRERATE_RIFLE = 300;
 let FIRERATE_SHOTGUN = 700;
 let FIRERATE_SNIPER = 1200;
 
+let structures;
+let newStructure;
+
 let currentSpeed = 0;
 let cursors;
 let altUpKey;
 let altLeftKey;
 let altRightKey;
 let jumpKey;
+let reloadKey;
+let wallKey;
+let rampKey;
+let platformKey;
 
 const GRAVITY = 400;
 const ROTATE_90_DEG_IN_RAD = Math.PI/2;
@@ -186,6 +194,18 @@ function create () {
     explosionAnimation.animations.add('kaboom');
   }
 
+  // *** Structures ***
+  structures = game.add.group();
+  structures.enableBody = true;
+  structures.physicsBodyType = Phaser.Physics.ARCADE;
+
+  // Base logic for new structures
+  newStructure =  structures.create(0, 500, 'structure');
+  structures.set(newStructure, 'scale.x', .5);
+  structures.set(newStructure, 'scale.y', .5);
+  structures.set(newStructure, 'body.immovable', true);
+  structures.set(newStructure, 'body.allowGravity', false);
+
   // *** Camera ***
   game.camera.follow(player);
   game.camera.deadzone = new Phaser.Rectangle(490, 150, 300, 300);
@@ -196,6 +216,10 @@ function create () {
   altLeftKey = game.input.keyboard.addKey(Phaser.Keyboard.A);
   altRightKey = game.input.keyboard.addKey(Phaser.Keyboard.D);
   jumpKey = game.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR);
+  reloadKey = game.input.keyboard.addKey(Phaser.Keyboard.R);
+  wallKey = game.input.keyboard.addKey(Phaser.Keyboard.Q);
+  rampKey = game.input.keyboard.addKey(Phaser.Keyboard.E);
+  platformKey = game.input.keyboard.addKey(Phaser.Keyboard.F);
 
   // *** Fullscreen ***
   // game.input.onDown.add(toggleFullscreen, this); // Fullscreen on mouse down
@@ -203,7 +227,7 @@ function create () {
 }
 
 function update () {
-  game.physics.arcade.collide(player, [ground, tank]);
+  game.physics.arcade.collide(player, [ground, structures, tank]);
   game.physics.arcade.overlap(enemyBullets, tank, bulletHitPlayer, null, this);
 
   enemiesAlive = 0;
@@ -336,8 +360,11 @@ function toggleFullscreen () {
 function render () {
   game.debug.bodyInfo(player, 32, 96);
   game.debug.cameraInfo(game.camera, 32, 200);
-  // game.debug.body(player); // Hitbox/Collision model
-  game.debug.body(ground); // Hitbox/Collision model
+  // game.debug.body(structures); // Hitbox/Collision model
+  // game.debug.body(ground); // Hitbox/Collision model
   weapon.debug()
+  structures.forEachAlive(member => {
+    game.debug.body(member)
+  }, this);
 }
 
