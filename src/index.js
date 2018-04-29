@@ -43,24 +43,28 @@ let enemiesAlive = 0;
 let explosions;
 
 let player;
-let facing = 'right'
+let facing = 'right';
+const FRAME_PLAYER_LEFT = 0;
+const FRAME_PLAYER_RIGHT = 5;
 
 let weaponSprite;
 let weapon;
 
 let bullets;
 let nextFire = 0;
-let DAMAGE_SMG = 10;
-let DAMAGE_RIFLE = 25;
-let DAMAGE_SHOTGUN = 75;
-let DAMAGE_SNIPER = 100;
-let FIRERATE_SMG = 150;
-let FIRERATE_RIFLE = 300;
-let FIRERATE_SHOTGUN = 700;
-let FIRERATE_SNIPER = 1200;
+const DAMAGE_SMG = 10;
+const DAMAGE_RIFLE = 25;
+const DAMAGE_SHOTGUN = 75;
+const DAMAGE_SNIPER = 100;
+const FIRERATE_SMG = 150;
+const FIRERATE_RIFLE = 300;
+const FIRERATE_SHOTGUN = 700;
+const FIRERATE_SNIPER = 1200;
 
 let structures;
 let newStructure;
+
+let structuresRemaining = 5;
 
 let currentSpeed = 0;
 let cursors;
@@ -134,7 +138,7 @@ function create () {
   // Creates 30 bullets, using the 'bullet' graphic
   weapon = game.add.weapon(30, 'bullet');
   weapon.bullets.forEach(bullet => {
-    bullet.scale.set(1.5)
+    bullet.scale.set(1.5);
   }, this)
 
   // No gravity on bullets
@@ -198,13 +202,6 @@ function create () {
   structures = game.add.group();
   structures.enableBody = true;
   structures.physicsBodyType = Phaser.Physics.ARCADE;
-
-  // Base logic for new structures
-  newStructure =  structures.create(0, 500, 'structure');
-  structures.set(newStructure, 'scale.x', .5);
-  structures.set(newStructure, 'scale.y', .5);
-  structures.set(newStructure, 'body.immovable', true);
-  structures.set(newStructure, 'body.allowGravity', false);
 
   // *** Camera ***
   game.camera.follow(player);
@@ -285,10 +282,10 @@ function update () {
       player.animations.stop();
 
       if (facing == 'left') {
-        player.frame = 0;
+        player.frame = FRAME_PLAYER_LEFT;
       }
       else {
-        player.frame = 5;
+        player.frame = FRAME_PLAYER_RIGHT;
       }
 
       facing = 'idle';
@@ -297,6 +294,10 @@ function update () {
 
   if ((cursors.up.isDown || altUpKey.isDown || jumpKey.isDown) && player.body.touching.down) {
     player.body.velocity.y = -250;
+  }
+
+  if (wallKey.justPressed() && structuresRemaining > 0) {
+    createWall();
   }
 
   // Environment moves with camera
@@ -348,6 +349,60 @@ function fire () {
   }
 }
 
+function applyCommonStructureProps (structure) {
+  if (facing === 'left' || player.frame === FRAME_PLAYER_LEFT) {
+    structures.set(structure, 'scale.x', -.5);
+  }
+  else {
+    structures.set(structure, 'scale.x', .5);
+  }
+
+  structures.set(structure, 'scale.y', .5);
+  structures.set(structure, 'body.immovable', true);
+  structures.set(structure, 'body.allowGravity', false);
+}
+
+function createWall () {
+  if (facing === 'left' || player.frame === FRAME_PLAYER_LEFT) {
+    newStructure =  structures.create(player.x - 150, player.y, 'structure');
+  }
+  else {
+    newStructure =  structures.create(player.x + 150, player.y, 'structure');
+  }
+
+  applyCommonStructureProps(newStructure);
+
+  structuresRemaining--;
+}
+
+function createRamp () {
+  if (facing === 'left' || player.frame === FRAME_PLAYER_LEFT) {
+    newStructure =  structures.create(player.x - 25, player.y, 'structure');
+  }
+  else {
+    newStructure =  structures.create(player.x + 25, player.y, 'structure');
+  }
+
+  structures.set(newStructure, 'scale.x', .5);
+  structures.set(newStructure, 'scale.y', .5);
+  structures.set(newStructure, 'body.immovable', true);
+  structures.set(newStructure, 'body.allowGravity', false);
+}
+
+function createPlatform () {
+  if (facing === 'left' || player.frame === FRAME_PLAYER_LEFT) {
+    newStructure =  structures.create(player.x - 25, player.y, 'structure');
+  }
+  else {
+    newStructure =  structures.create(player.x + 25, player.y, 'structure');
+  }
+
+  structures.set(newStructure, 'scale.x', .5);
+  structures.set(newStructure, 'scale.y', .5);
+  structures.set(newStructure, 'body.immovable', true);
+  structures.set(newStructure, 'body.allowGravity', false);
+}
+
 function toggleFullscreen () {
   if (game.scale.isFullScreen) {
     game.scale.stopFullScreen();
@@ -362,9 +417,9 @@ function render () {
   game.debug.cameraInfo(game.camera, 32, 200);
   // game.debug.body(structures); // Hitbox/Collision model
   // game.debug.body(ground); // Hitbox/Collision model
-  weapon.debug()
+  weapon.debug();
   structures.forEachAlive(member => {
-    game.debug.body(member)
+    game.debug.body(member);
   }, this);
 }
 
