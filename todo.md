@@ -33,7 +33,7 @@
 ---
 
 
-## Turn player depending on mouse pointer
+## Turn player depending on mouse pointer instead of direction key
 
 
 ---

@@ -2,7 +2,21 @@ import PIXI from 'expose-loader?PIXI!phaser-ce/build/custom/pixi.js';
 import p2 from 'expose-loader?p2!phaser-ce/build/custom/p2.js';
 import Phaser from 'expose-loader?Phaser!phaser-ce/build/custom/phaser-split.js';
 
-var game = new Phaser.Game(800, 600, Phaser.AUTO, '2nite', { preload: preload, create: create, update: update, render: render });
+const GAME_WIDTH = 1280;
+const GAME_HEIGHT = 600;
+
+var game = new Phaser.Game(
+  GAME_WIDTH,
+  GAME_HEIGHT,
+  Phaser.AUTO,
+  '2nite',
+  {
+    preload,
+    create,
+    update,
+    render
+  }
+);
 
 function preload () {
   game.load.atlas('tank', 'assets/tanks.png', 'assets/tanks.json');
@@ -18,7 +32,6 @@ function preload () {
 let sky;
 let ground;
 
-let shadow;
 let tank;
 let turret;
 
@@ -56,16 +69,16 @@ const GRAVITY = 400;
 const ROTATE_90_DEG_IN_RAD = Math.PI/2;
 
 function create () {
-  // *** Resize our game world to be a 1600 x 600 square ***
-  game.world.setBounds(-800, 0, 1600, 600);
+  // *** Resize game world to be a 1600 x 600 square ***
+  game.world.setBounds(-GAME_WIDTH, 0, GAME_WIDTH * 2, GAME_HEIGHT);
   game.physics.arcade.gravity.y = GRAVITY;
 
   // *** Tiled scrolling sky ***
-  sky = game.add.tileSprite(0, 0, 800, 600, 'sky');
+  sky = game.add.tileSprite(0, 0, GAME_WIDTH, GAME_HEIGHT, 'sky');
   sky.fixedToCamera = true;
 
   // *** Tiled scrolling ground ***
-  ground = game.add.tileSprite(0, 541.5, 800, 58, 'ground', 0);
+  ground = game.add.tileSprite(0, 541.5, GAME_WIDTH, 58, 'ground', 0);
   ground.fixedToCamera = true;
   game.physics.enable(ground, Phaser.Physics.ARCADE);
 
@@ -110,25 +123,26 @@ function create () {
   weaponSprite.x = player.x + 25;
 
   // *** Bullets ***
-
-  //  Creates 30 bullets, using the 'bullet' graphic
+  // Creates 30 bullets, using the 'bullet' graphic
   weapon = game.add.weapon(30, 'bullet');
   weapon.bullets.forEach(bullet => {
     bullet.scale.set(1.5)
   }, this)
+
+  // No gravity on bullets
   weapon.bulletGravity.y = -GRAVITY;
 
   // Rotate bullets
   weapon.bulletAngleOffset = 90;
 
-  //  The speed at which the bullet is fired
+  // The speed at which the bullet is fired
   weapon.bulletSpeed = 400;
 
-  //  Speed-up the rate of fire, allowing them to shoot 1 bullet every 60ms
+  // Speed-up the rate of fire, allowing them to shoot 1 bullet every 60ms
   weapon.fireRate = FIRERATE_RIFLE;
 
-  //  Tell the Weapon to track the 'weaponSprite' Sprite
-  //  But the 'true' argument tells the weapon to track sprite rotation
+  // Tell the Weapon to track the 'weaponSprite' Sprite
+  // But the 'true' argument tells the weapon to track sprite rotation
   weapon.trackSprite(weaponSprite, 25, -5, true);
 
 
@@ -153,10 +167,6 @@ function create () {
     enemies.push(new EnemyTank(i, game, tank, enemyBullets));
   }
 
-  //  A shadow below our tank
-  shadow = game.add.sprite(0, 0, 'tank', 'shadow');
-  shadow.anchor.setTo(0.5, 0.5);
-
   //  Our bullet group
   bullets = game.add.group();
   bullets.enableBody = true;
@@ -176,13 +186,11 @@ function create () {
     explosionAnimation.animations.add('kaboom');
   }
 
-  tank.bringToTop();
-  turret.bringToTop();
-
+  // *** Camera ***
   game.camera.follow(player);
-  game.camera.deadzone = new Phaser.Rectangle(150, 150, 500, 300);
-  game.camera.focusOnXY(0, 0);
+  game.camera.deadzone = new Phaser.Rectangle(490, 150, 300, 300);
 
+  // *** Keybinds ***
   cursors = game.input.keyboard.createCursorKeys();
   altUpKey = game.input.keyboard.addKey(Phaser.Keyboard.W);
   altLeftKey = game.input.keyboard.addKey(Phaser.Keyboard.A);
@@ -206,6 +214,7 @@ function update () {
     }
   }
 
+  // Stops player when no movement keys are pressed
   player.body.velocity.x = 0;
 
   if (cursors.left.isDown || altLeftKey.isDown)
@@ -217,11 +226,13 @@ function update () {
       facing = 'left';
     }
 
+    // Flips weapon to face left
     if (weaponSprite.scale.y > 0) {
       weaponSprite.scale.y *= -1;
       weapon.trackSprite(weaponSprite, 25, 5, true);
     }
 
+    // Weapon follows player left
     weaponSprite.x = player.x - 10;
   }
   else if (cursors.right.isDown || altRightKey.isDown) {
@@ -232,11 +243,13 @@ function update () {
       facing = 'right';
     }
 
+    // Flips weapon to face right
     if (weaponSprite.scale.y < 0) {
       weaponSprite.scale.y *= -1;
       weapon.trackSprite(weaponSprite, 25, -5, true);
     }
 
+    // Weapon follows player right
     weaponSprite.x = player.x + 10;
   }
   else {
@@ -254,35 +267,20 @@ function update () {
     }
   }
 
-  if ((cursors.up.isDown || altUpKey.isDown || jumpKey.isDown) && player.body.onFloor()) {
+  if ((cursors.up.isDown || altUpKey.isDown || jumpKey.isDown) && player.body.touching.down) {
     player.body.velocity.y = -250;
-
-    //  The speed we'll travel at
-    // currentSpeed = 300;
-  }
-  else {
-    if (currentSpeed > 0) {
-      currentSpeed -= 4;
-    }
   }
 
-  if (currentSpeed > 0) {
-    game.physics.arcade.velocityFromRotation(tank.rotation, currentSpeed, tank.body.velocity);
-  }
-
+  // Environment moves with camera
   sky.tilePosition.x = -game.camera.x;
   ground.tilePosition.x = -game.camera.x;
-
-  //  Position all the parts and align rotations
-  shadow.x = tank.x;
-  shadow.y = tank.y;
-  shadow.rotation = tank.rotation;
 
   turret.x = tank.x;
   turret.y = tank.y;
 
   turret.rotation = game.physics.arcade.angleToPointer(turret);
 
+  // Weapon positioning
   weaponSprite.y = player.y + 20;
   weaponSprite.rotation = game.physics.arcade.angleToPointer(weaponSprite);
 
@@ -324,7 +322,8 @@ function fire () {
 
 function render () {
   game.debug.bodyInfo(player, 32, 96);
-  game.debug.body(player); // Hitbox/Collision model
+  game.debug.cameraInfo(game.camera, 32, 200);
+  // game.debug.body(player); // Hitbox/Collision model
   game.debug.body(ground); // Hitbox/Collision model
   weapon.debug()
 }
