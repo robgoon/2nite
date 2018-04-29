@@ -33,7 +33,10 @@
 ---
 
 
-## Turn player depending on mouse pointer instead of direction key
+## QOL
+- turn player depending on mouse pointer instead of direction key
+- camera follows mouse
+- fullscreen (can't use keyboard unless use special flag)
 
 
 ---

@@ -196,6 +196,10 @@ function create () {
   altLeftKey = game.input.keyboard.addKey(Phaser.Keyboard.A);
   altRightKey = game.input.keyboard.addKey(Phaser.Keyboard.D);
   jumpKey = game.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR);
+
+  // *** Fullscreen ***
+  // game.input.onDown.add(toggleFullscreen, this); // Fullscreen on mouse down
+  game.scale.fullScreenScaleMode = Phaser.ScaleManager.SHOW_ALL;
 }
 
 function update () {
@@ -317,6 +321,15 @@ function fire () {
     bullet.scale.setMagnitude(2);
     bullet.body.allowGravity = false;
     bullet.rotation = game.physics.arcade.moveToPointer(bullet, 400, game.input.activePointer, 0) + ROTATE_90_DEG_IN_RAD;
+  }
+}
+
+function toggleFullscreen () {
+  if (game.scale.isFullScreen) {
+    game.scale.stopFullScreen();
+  }
+  else {
+    game.scale.startFullScreen(false);
   }
 }
 
