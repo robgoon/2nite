@@ -303,6 +303,7 @@ function update () {
   }
   else if (threeKey.justReleased() && currentWeaponType !== WEAPON_TYPE_SHOTGUN) {
     game.time.removeAll();
+    currentReloadTime = 0;
     currentWeaponType = WEAPON_TYPE_SHOTGUN;
     weapon.fireLimit = BULLETS_SHOTGUN;
     weapon.fireRate = FIRE_RATE_SHOTGUN;
@@ -318,6 +319,7 @@ function update () {
   }
   else if (fourKey.justReleased() && currentWeaponType !== WEAPON_TYPE_SNIPER) {
     game.time.removeAll();
+    currentReloadTime = 0;
     currentWeaponType = WEAPON_TYPE_SNIPER;
     weapon.fireLimit = BULLETS_SNIPER;
     weapon.fireRate = FIRE_RATE_SNIPER;
@@ -361,8 +363,10 @@ function update () {
   }
 
   if (game.input.activePointer.isDown) {
-    weapon.fire();
-    updateBulletsShot();
+    if (!isReloading()) {
+      weapon.fire();
+      updateBulletsShot();
+    }
   }
 
   // Environment moves with camera
@@ -524,6 +528,10 @@ function bulletHit (bullet, objHit) {
   bullet.kill();
 }
 
+function isReloading () {
+  return currentReloadTime - game.time.now > 0;
+}
+
 function toggleFullscreen () {
   if (game.scale.isFullScreen) {
     game.scale.stopFullScreen();
@@ -537,7 +545,7 @@ function render () {
   game.debug.text(`${currentWeaponType}: ${weapon.fireLimit - weapon.shots}/${weapon.fireLimit}`, 32, 32)
 
   game.debug.text(`Reload: ${
-    (currentReloadTime && currentReloadTime - game.time.now > 0)
+    (currentReloadTime && isReloading())
       ? ((currentReloadTime - game.time.now) / 1000).toFixed(1)
       : Number(currentReloadTime = 0).toFixed(1)
     }s`,
