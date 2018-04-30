@@ -61,12 +61,13 @@ const DAMAGE_RIFLE = 25;
 const DAMAGE_SHOTGUN = 75;
 const DAMAGE_SNIPER = 100;
 
-const FIRERATE_SMG = 150;
-const FIRERATE_RIFLE = 300;
-const FIRERATE_SHOTGUN = 700;
-const FIRERATE_SNIPER = 1200;
+const FIRE_RATE_SMG = 150;
+const FIRE_RATE_RIFLE = 300;
+const FIRE_RATE_SHOTGUN = 700;
+const FIRE_RATE_SNIPER = 1200;
 
-let currentReloadTime;
+let currentReloadTime = 0;
+let currentReloadRate;
 const RELOAD_RATE_SMG = 1;
 const RELOAD_RATE_RIFLE = 1.5;
 const RELOAD_RATE_SHOTGUN = 2;
@@ -153,7 +154,7 @@ function create () {
   weapon.bulletSpeed = 400;
 
   // Speed-up the rate of fire, allowing them to shoot 1 bullet every 60ms
-  weapon.fireRate = FIRERATE_RIFLE;
+  weapon.fireRate = FIRE_RATE_RIFLE;
 
   // Tell the Weapon to track the 'weaponSprite' Sprite
   // But the 'true' argument tells the weapon to track sprite rotation
@@ -283,49 +284,60 @@ function update () {
     createPlatform();
   }
 
-  if (oneKey.justReleased()) {
+  if (oneKey.justReleased() && currentWeaponType !== WEAPON_TYPE_SMG) {
     game.time.removeAll();
+    currentReloadTime = 0;
     currentWeaponType = WEAPON_TYPE_SMG;
     weapon.fireLimit = BULLETS_SMG;
+    weapon.fireRate = FIRE_RATE_SMG;
     weapon.shots = bulletsShotSMG;
   }
-  else if (twoKey.justReleased()) {
+  else if (twoKey.justReleased() && currentWeaponType !== WEAPON_TYPE_RIFLE) {
     game.time.removeAll();
+    currentReloadTime = 0;
     currentWeaponType = WEAPON_TYPE_RIFLE;
     weapon.fireLimit = BULLETS_RIFLE;
+    weapon.fireRate = FIRE_RATE_RIFLE;
     weapon.shots = bulletsShotRifle;
   }
-  else if (threeKey.justReleased()) {
+  else if (threeKey.justReleased() && currentWeaponType !== WEAPON_TYPE_SHOTGUN) {
     game.time.removeAll();
     currentWeaponType = WEAPON_TYPE_SHOTGUN;
     weapon.fireLimit = BULLETS_SHOTGUN;
+    weapon.fireRate = FIRE_RATE_SHOTGUN;
     weapon.shots = bulletsShotShotgun;
   }
-  else if (fourKey.justReleased()) {
+  else if (fourKey.justReleased() && currentWeaponType !== WEAPON_TYPE_SNIPER) {
     game.time.removeAll();
     currentWeaponType = WEAPON_TYPE_SNIPER;
     weapon.fireLimit = BULLETS_SNIPER;
+    weapon.fireRate = FIRE_RATE_SNIPER;
     weapon.shots = bulletsShotSniper;
   }
 
   if (reloadKey.justReleased()) {
     if (weapon.shots > 0) {
       if (currentWeaponType === WEAPON_TYPE_SMG) {
-        currentReloadTime = RELOAD_RATE_SMG;
+        currentReloadRate = RELOAD_RATE_SMG;
       }
       else if (currentWeaponType === WEAPON_TYPE_RIFLE) {
-        currentReloadTime = RELOAD_RATE_RIFLE
+        currentReloadRate = RELOAD_RATE_RIFLE
       }
       else if (currentWeaponType === WEAPON_TYPE_SHOTGUN) {
-        currentReloadTime = RELOAD_RATE_SHOTGUN;
+        currentReloadRate = RELOAD_RATE_SHOTGUN;
       }
       else if (currentWeaponType === WEAPON_TYPE_SNIPER) {
-        currentReloadTime = RELOAD_RATE_SNIPER;
+        currentReloadRate = RELOAD_RATE_SNIPER;
       }
 
+      currentReloadTime = game.time.now + (Phaser.Timer.SECOND * currentReloadRate);
+
       game.time.events.add(
-        Phaser.Timer.SECOND * currentReloadTime,
-        () => weapon.resetShots(),
+        Phaser.Timer.SECOND * currentReloadRate,
+        () => {
+          weapon.resetShots();
+          updateBulletsShot();
+        },
         this
       );
     }
@@ -333,19 +345,7 @@ function update () {
 
   if (game.input.activePointer.isDown) {
     weapon.fire();
-
-    if (currentWeaponType === WEAPON_TYPE_SMG) {
-      bulletsShotSMG = weapon.shots;
-    }
-    else if (currentWeaponType === WEAPON_TYPE_RIFLE) {
-      bulletsShotRifle = weapon.shots;
-    }
-    else if (currentWeaponType === WEAPON_TYPE_SHOTGUN) {
-      bulletsShotShotgun = weapon.shots;
-    }
-    else if (currentWeaponType === WEAPON_TYPE_SNIPER) {
-      bulletsShotSniper = weapon.shots;
-    }
+    updateBulletsShot();
   }
 
   // Environment moves with camera
@@ -486,6 +486,21 @@ function createPlatform () {
   structuresRemaining--;
 }
 
+function updateBulletsShot () {
+  if (currentWeaponType === WEAPON_TYPE_SMG) {
+    bulletsShotSMG = weapon.shots;
+  }
+  else if (currentWeaponType === WEAPON_TYPE_RIFLE) {
+    bulletsShotRifle = weapon.shots;
+  }
+  else if (currentWeaponType === WEAPON_TYPE_SHOTGUN) {
+    bulletsShotShotgun = weapon.shots;
+  }
+  else if (currentWeaponType === WEAPON_TYPE_SNIPER) {
+    bulletsShotSniper = weapon.shots;
+  }
+}
+
 function toggleFullscreen () {
   if (game.scale.isFullScreen) {
     game.scale.stopFullScreen();
@@ -497,13 +512,22 @@ function toggleFullscreen () {
 
 function render () {
   game.debug.text(`${currentWeaponType}: ${weapon.fireLimit - weapon.shots}/${weapon.fireLimit}`, 32, 32)
-  // game.debug.text(`Reload: ${(game.time.events.duration / 1000).toFixed(1)}`, 200, 32); // Doesn't clear duration when removed
-  game.debug.bodyInfo(player, 32, 96);
-  game.debug.cameraInfo(game.camera, 32, 200);
+
+  game.debug.text(`Reload: ${
+    (currentReloadTime && currentReloadTime - game.time.now > 0)
+      ? ((currentReloadTime - game.time.now) / 1000).toFixed(1)
+      : Number(currentReloadTime = 0).toFixed(1)
+    }s`,
+    200,
+    32
+  );
+
+  // game.debug.bodyInfo(player, 32, 96);
+  // game.debug.cameraInfo(game.camera, 32, 200);
   // game.debug.body(player); // Hitbox/Collision model
+
   // structures.forEachAlive(member => { // Hitbox/Collision model
   //   game.debug.body(member);
   // }, this);
   // weapon.debug();
 }
-

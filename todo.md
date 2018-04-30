@@ -1,16 +1,7 @@
-## Require weapon reload
-- keep inflight bullets alive
-
-
----
-
-
 ## Add different weapons
-- num keys to select
 - map out images
-- different damage/firerate
+- different damage
 - different bullet sprites
-- different bullet pools (weapon not reloaded)
 
 
 ---
