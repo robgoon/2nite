@@ -40,9 +40,21 @@ const FRAME_PLAYER_RIGHT = 5;
 
 let weaponSprite;
 let weapon;
+let currentWeaponType;
+const WEAPON_TYPE_SMG = 'SMG';
+const WEAPON_TYPE_RIFLE = 'Rifle';
+const WEAPON_TYPE_SHOTGUN = 'Shotgun';
+const WEAPON_TYPE_SNIPER = 'Sniper';
 
 let bullets;
-let nextFire = 0;
+let bulletsShotSMG = 0;
+let bulletsShotRifle = 0;
+let bulletsShotShotgun = 0;
+let bulletsShotSniper = 0;
+const BULLETS_SMG = 35;
+const BULLETS_RIFLE = 30;
+const BULLETS_SHOTGUN = 5;
+const BULLETS_SNIPER = 1;
 const DAMAGE_SMG = 10;
 const DAMAGE_RIFLE = 25;
 const DAMAGE_SHOTGUN = 75;
@@ -59,14 +71,18 @@ let structurePlacement;
 let structuresRemaining = 5;
 
 let cursors;
-let altUpKey;
-let altLeftKey;
-let altRightKey;
+let secUpKey;
+let secLeftKey;
+let secRightKey;
 let jumpKey;
 let reloadKey;
 let wallKey;
 let rampKey;
 let platformKey;
+let oneKey;
+let twoKey;
+let threeKey;
+let fourKey;
 
 const GRAVITY = 400;
 
@@ -101,15 +117,20 @@ function create () {
   player.animations.add('turn', [4], 20, true);
   player.animations.add('right', [5, 6, 7, 8], 10, true);
 
-  // *** Default weapon ***
+  // *** Default weapon - Rifle ***
   weaponSprite = game.add.sprite(0, 0, 'weapons', 0);
   weaponSprite.anchor.setTo(0.3, 0.5);
   weaponSprite.scale.set(.6);
   weaponSprite.x = player.x + 25;
 
+  currentWeaponType = WEAPON_TYPE_RIFLE;
+
   // *** Bullets ***
   // Creates 30 bullets, using the 'bullet' graphic
-  weapon = game.add.weapon(30, 'bullet');
+  weapon = game.add.weapon(BULLETS_RIFLE, 'bullet');
+  weapon.fireLimit = BULLETS_RIFLE;
+  weapon.bulletKillType = Phaser.Weapon.KILL_CAMERA_BOUNDS;
+
   weapon.bullets.forEach(bullet => {
     bullet.scale.set(1.5);
   }, this)
@@ -154,14 +175,18 @@ function create () {
 
   // *** Keybinds ***
   cursors = game.input.keyboard.createCursorKeys();
-  altUpKey = game.input.keyboard.addKey(Phaser.Keyboard.W);
-  altLeftKey = game.input.keyboard.addKey(Phaser.Keyboard.A);
-  altRightKey = game.input.keyboard.addKey(Phaser.Keyboard.D);
+  secUpKey = game.input.keyboard.addKey(Phaser.Keyboard.W);
+  secLeftKey = game.input.keyboard.addKey(Phaser.Keyboard.A);
+  secRightKey = game.input.keyboard.addKey(Phaser.Keyboard.D);
   jumpKey = game.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR);
   reloadKey = game.input.keyboard.addKey(Phaser.Keyboard.R);
   wallKey = game.input.keyboard.addKey(Phaser.Keyboard.Q);
   rampKey = game.input.keyboard.addKey(Phaser.Keyboard.E);
   platformKey = game.input.keyboard.addKey(Phaser.Keyboard.F);
+  oneKey = game.input.keyboard.addKey(Phaser.Keyboard.ONE);
+  twoKey = game.input.keyboard.addKey(Phaser.Keyboard.TWO);
+  threeKey = game.input.keyboard.addKey(Phaser.Keyboard.THREE);
+  fourKey = game.input.keyboard.addKey(Phaser.Keyboard.FOUR);
 
   // *** Fullscreen ***
   // game.input.onDown.add(toggleFullscreen, this); // Fullscreen on mouse down
@@ -175,7 +200,7 @@ function update () {
   // Stops player when no movement keys are pressed
   player.body.velocity.x = 0;
 
-  if (cursors.left.isDown || altLeftKey.isDown) {
+  if (cursors.left.isDown || secLeftKey.isDown) {
     player.body.velocity.x = -150;
 
     if (facing != 'left') {
@@ -192,7 +217,7 @@ function update () {
     // Weapon follows player left
     weaponSprite.x = player.x - 10;
   }
-  else if (cursors.right.isDown || altRightKey.isDown) {
+  else if (cursors.right.isDown || secRightKey.isDown) {
     player.body.velocity.x = 150;
 
     if (facing != 'right') {
@@ -224,7 +249,7 @@ function update () {
     }
   }
 
-  if ((cursors.up.isDown || altUpKey.isDown || jumpKey.isDown) && player.body.touching.down) {
+  if ((cursors.up.isDown || secUpKey.isDown || jumpKey.isDown) && player.body.touching.down) {
     player.body.velocity.y = -250;
   }
 
@@ -250,6 +275,44 @@ function update () {
     createPlatform();
   }
 
+  if (oneKey.justReleased()) {
+    currentWeaponType = WEAPON_TYPE_SMG;
+    weapon.fireLimit = BULLETS_SMG;
+    weapon.shots = bulletsShotSMG;
+  }
+  else if (twoKey.justReleased()) {
+    currentWeaponType = WEAPON_TYPE_RIFLE;
+    weapon.fireLimit = BULLETS_RIFLE;
+    weapon.shots = bulletsShotRifle;
+  }
+  else if (threeKey.justReleased()) {
+    currentWeaponType = WEAPON_TYPE_SHOTGUN;
+    weapon.fireLimit = BULLETS_SHOTGUN;
+    weapon.shots = bulletsShotShotgun;
+  }
+  else if (fourKey.justReleased()) {
+    currentWeaponType = WEAPON_TYPE_SNIPER;
+    weapon.fireLimit = BULLETS_SNIPER;
+    weapon.shots = bulletsShotSniper;
+  }
+
+  if (game.input.activePointer.isDown) {
+    weapon.fire();
+
+    if (currentWeaponType === WEAPON_TYPE_SMG) {
+      bulletsShotSMG = weapon.shots;
+    }
+    else if (currentWeaponType === WEAPON_TYPE_RIFLE) {
+      bulletsShotRifle = weapon.shots;
+    }
+    else if (currentWeaponType === WEAPON_TYPE_SHOTGUN) {
+      bulletsShotShotgun = weapon.shots;
+    }
+    else if (currentWeaponType === WEAPON_TYPE_SNIPER) {
+      bulletsShotSniper = weapon.shots;
+    }
+  }
+
   // Environment moves with camera
   sky.tilePosition.x = -game.camera.x;
   ground.tilePosition.x = -game.camera.x;
@@ -257,10 +320,6 @@ function update () {
   // Weapon positioning
   weaponSprite.y = player.y + 20;
   weaponSprite.rotation = game.physics.arcade.angleToPointer(weaponSprite);
-
-  if (game.input.activePointer.isDown) {
-    weapon.fire();
-  }
 }
 
 function applyCommonStructurePlacementProps (structure, type) {
@@ -402,12 +461,13 @@ function toggleFullscreen () {
 }
 
 function render () {
+  game.debug.text(`${currentWeaponType}: ${weapon.fireLimit - weapon.shots}/${weapon.fireLimit}`, 32, 32)
   game.debug.bodyInfo(player, 32, 96);
   game.debug.cameraInfo(game.camera, 32, 200);
   // game.debug.body(player); // Hitbox/Collision model
   // structures.forEachAlive(member => { // Hitbox/Collision model
   //   game.debug.body(member);
   // }, this);
-  weapon.debug();
+  // weapon.debug();
 }
 
