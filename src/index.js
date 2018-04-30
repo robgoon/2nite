@@ -55,14 +55,22 @@ const BULLETS_SMG = 35;
 const BULLETS_RIFLE = 30;
 const BULLETS_SHOTGUN = 5;
 const BULLETS_SNIPER = 1;
+
 const DAMAGE_SMG = 10;
 const DAMAGE_RIFLE = 25;
 const DAMAGE_SHOTGUN = 75;
 const DAMAGE_SNIPER = 100;
+
 const FIRERATE_SMG = 150;
 const FIRERATE_RIFLE = 300;
 const FIRERATE_SHOTGUN = 700;
 const FIRERATE_SNIPER = 1200;
+
+let currentReloadTime;
+const RELOAD_RATE_SMG = 1;
+const RELOAD_RATE_RIFLE = 1.5;
+const RELOAD_RATE_SHOTGUN = 2;
+const RELOAD_RATE_SNIPER = 2.5;
 
 let structures;
 let newStructure;
@@ -276,24 +284,51 @@ function update () {
   }
 
   if (oneKey.justReleased()) {
+    game.time.removeAll();
     currentWeaponType = WEAPON_TYPE_SMG;
     weapon.fireLimit = BULLETS_SMG;
     weapon.shots = bulletsShotSMG;
   }
   else if (twoKey.justReleased()) {
+    game.time.removeAll();
     currentWeaponType = WEAPON_TYPE_RIFLE;
     weapon.fireLimit = BULLETS_RIFLE;
     weapon.shots = bulletsShotRifle;
   }
   else if (threeKey.justReleased()) {
+    game.time.removeAll();
     currentWeaponType = WEAPON_TYPE_SHOTGUN;
     weapon.fireLimit = BULLETS_SHOTGUN;
     weapon.shots = bulletsShotShotgun;
   }
   else if (fourKey.justReleased()) {
+    game.time.removeAll();
     currentWeaponType = WEAPON_TYPE_SNIPER;
     weapon.fireLimit = BULLETS_SNIPER;
     weapon.shots = bulletsShotSniper;
+  }
+
+  if (reloadKey.justReleased()) {
+    if (weapon.shots > 0) {
+      if (currentWeaponType === WEAPON_TYPE_SMG) {
+        currentReloadTime = RELOAD_RATE_SMG;
+      }
+      else if (currentWeaponType === WEAPON_TYPE_RIFLE) {
+        currentReloadTime = RELOAD_RATE_RIFLE
+      }
+      else if (currentWeaponType === WEAPON_TYPE_SHOTGUN) {
+        currentReloadTime = RELOAD_RATE_SHOTGUN;
+      }
+      else if (currentWeaponType === WEAPON_TYPE_SNIPER) {
+        currentReloadTime = RELOAD_RATE_SNIPER;
+      }
+
+      game.time.events.add(
+        Phaser.Timer.SECOND * currentReloadTime,
+        () => weapon.resetShots(),
+        this
+      );
+    }
   }
 
   if (game.input.activePointer.isDown) {
@@ -462,6 +497,7 @@ function toggleFullscreen () {
 
 function render () {
   game.debug.text(`${currentWeaponType}: ${weapon.fireLimit - weapon.shots}/${weapon.fireLimit}`, 32, 32)
+  // game.debug.text(`Reload: ${(game.time.events.duration / 1000).toFixed(1)}`, 200, 32); // Doesn't clear duration when removed
   game.debug.bodyInfo(player, 32, 96);
   game.debug.cameraInfo(game.camera, 32, 200);
   // game.debug.body(player); // Hitbox/Collision model
