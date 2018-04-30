@@ -25,13 +25,10 @@ function preload () {
   game.load.spritesheet('ground', 'assets/tiles-1.png', 100, 58.5, 1, 4);
   game.load.spritesheet('player', 'assets/dude.png', 32, 48);
   game.load.spritesheet('weapons', 'assets/weapons.gif', 105, 67);
-  game.load.spritesheet('kaboom', 'assets/explosion.png', 64, 64, 23);
 }
 
 let sky;
 let ground;
-
-let explosions;
 
 let player;
 let facing = 'right';
@@ -136,13 +133,14 @@ function create () {
 
   // *** Bullets ***
   // Creates 30 bullets, using the 'bullet' graphic
-  weapon = game.add.weapon(BULLETS_RIFLE, 'bullet');
+  weapon = game.add.weapon(30, 'bullet');
   weapon.fireLimit = BULLETS_RIFLE;
   weapon.bulletKillType = Phaser.Weapon.KILL_CAMERA_BOUNDS;
 
   weapon.bullets.forEach(bullet => {
     bullet.scale.set(1.5);
-  }, this)
+    bullet.damage = DAMAGE_RIFLE;
+  }, this);
 
   // No gravity on bullets
   weapon.bulletGravity.y = -GRAVITY;
@@ -159,19 +157,6 @@ function create () {
   // Tell the Weapon to track the 'weaponSprite' Sprite
   // But the 'true' argument tells the weapon to track sprite rotation
   weapon.trackSprite(weaponSprite, 25, -5, true);
-
-
-
-  //  Explosion pool
-  explosions = game.add.group();
-
-  for (var i = 0; i < 10; i++) {
-    var explosionAnimation = explosions.create(0, 0, 'kaboom', [0], false);
-    explosionAnimation.anchor.setTo(0.5, 0.5);
-    explosionAnimation.animations.add('kaboom');
-  }
-
-
 
   // *** Structures ***
   structures = game.add.group();
@@ -204,7 +189,7 @@ function create () {
 
 function update () {
   game.physics.arcade.collide(player, [ground, structures]);
-  // game.physics.arcade.overlap(bullets, enemies[i].tank, bulletHitEnemy, null, this); // Like collide without the physics applied
+  game.physics.arcade.overlap(weapon.bullets, structures, bulletHit); // Exclude ground because weird bug where puts single obj as first arg instead of group obj in callback
 
   // Stops player when no movement keys are pressed
   player.body.velocity.x = 0;
@@ -291,6 +276,14 @@ function update () {
     weapon.fireLimit = BULLETS_SMG;
     weapon.fireRate = FIRE_RATE_SMG;
     weapon.shots = bulletsShotSMG;
+    weapon.bullets.forEach(bullet => {
+      if (!bullet.alive) {
+        bullet.damage = DAMAGE_SMG;
+      }
+    }, this);
+    weapon.onKill.add((bullet) => { // Change damage of in-flight bullets after killed
+      bullet.damage = DAMAGE_SMG;
+    });
   }
   else if (twoKey.justReleased() && currentWeaponType !== WEAPON_TYPE_RIFLE) {
     game.time.removeAll();
@@ -299,6 +292,14 @@ function update () {
     weapon.fireLimit = BULLETS_RIFLE;
     weapon.fireRate = FIRE_RATE_RIFLE;
     weapon.shots = bulletsShotRifle;
+    weapon.bullets.forEach(bullet => {
+      if (!bullet.alive) {
+        bullet.damage = DAMAGE_RIFLE;
+      }
+    }, this);
+    weapon.onKill.add((bullet) => { // Change damage of in-flight bullets after killed
+      bullet.damage = DAMAGE_RIFLE;
+    });
   }
   else if (threeKey.justReleased() && currentWeaponType !== WEAPON_TYPE_SHOTGUN) {
     game.time.removeAll();
@@ -306,6 +307,14 @@ function update () {
     weapon.fireLimit = BULLETS_SHOTGUN;
     weapon.fireRate = FIRE_RATE_SHOTGUN;
     weapon.shots = bulletsShotShotgun;
+    weapon.bullets.forEach(bullet => {
+      if (!bullet.alive) {
+        bullet.damage = DAMAGE_SHOTGUN;
+      }
+    }, this);
+    weapon.onKill.add((bullet) => { // Change damage of in-flight bullets after killed
+      bullet.damage = DAMAGE_SHOTGUN;
+    });
   }
   else if (fourKey.justReleased() && currentWeaponType !== WEAPON_TYPE_SNIPER) {
     game.time.removeAll();
@@ -313,6 +322,14 @@ function update () {
     weapon.fireLimit = BULLETS_SNIPER;
     weapon.fireRate = FIRE_RATE_SNIPER;
     weapon.shots = bulletsShotSniper;
+    weapon.bullets.forEach(bullet => {
+      if (!bullet.alive) {
+        bullet.damage = DAMAGE_SNIPER;
+      }
+    }, this);
+    weapon.onKill.add((bullet) => { // Change damage of in-flight bullets after killed
+      bullet.damage = DAMAGE_SNIPER;
+    });
   }
 
   if (reloadKey.justReleased()) {
@@ -321,7 +338,7 @@ function update () {
         currentReloadRate = RELOAD_RATE_SMG;
       }
       else if (currentWeaponType === WEAPON_TYPE_RIFLE) {
-        currentReloadRate = RELOAD_RATE_RIFLE
+        currentReloadRate = RELOAD_RATE_RIFLE;
       }
       else if (currentWeaponType === WEAPON_TYPE_SHOTGUN) {
         currentReloadRate = RELOAD_RATE_SHOTGUN;
@@ -390,6 +407,7 @@ function applyCommonStructureProps (structure, type) {
   structures.set(structure, 'scale.y', .3);
   structures.set(structure, 'body.immovable', true);
   structures.set(structure, 'body.allowGravity', false);
+  structures.set(structure, 'health', 100);
 }
 
 // Need because can't rotate Arcade bodies
@@ -499,6 +517,11 @@ function updateBulletsShot () {
   else if (currentWeaponType === WEAPON_TYPE_SNIPER) {
     bulletsShotSniper = weapon.shots;
   }
+}
+
+function bulletHit (bullet, objHit) {
+  objHit.damage(bullet.damage);
+  bullet.kill();
 }
 
 function toggleFullscreen () {

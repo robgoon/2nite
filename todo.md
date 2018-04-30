@@ -1,12 +1,3 @@
-## Add different weapons
-- map out images
-- different damage
-- different bullet sprites
-
-
----
-
-
 ## UI
 - weapons + keys
 - player HP
@@ -30,6 +21,14 @@
 ## Add building at mouse point
 - build only at certain dist from player
   - change colors to indicate
+
+
+---
+
+
+## Add different weapons
+- map out images
+- different bullet sprites
 
 
 ---
