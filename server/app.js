@@ -3,7 +3,7 @@ const path = require('path')
 const morgan = require('morgan')
 const bodyParser = require('body-parser')
 const app = express()
-const PORT = 8080
+const PORT = process.env.PORT || 8080
 
 // Logging middleware
 app.use(morgan('dev'))

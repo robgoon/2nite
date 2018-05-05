@@ -5,6 +5,7 @@
   "main": "src/index.js",
   "scripts": {
     "build-prod": "webpack -p",
+    "deploy": "script/deploy",
     "start-dev": "webpack -w & nodemon server/app --ignore public",
     "start": "node server/app"
   },
