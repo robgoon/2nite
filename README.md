@@ -1,5 +1,6 @@
 # 2nite
 
+App: https://game-2nite.herokuapp.com/
 
 ## Controls
 - Arrows, W, A, D - Movement
